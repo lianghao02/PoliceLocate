@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>警用定位助手 (v9 勤務整合版)</title>
+    <title>警用定位助手 (v10 螢幕翻拍優化版)</title>
     
     <!-- Leaflet 地圖 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -55,7 +55,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
-        /* 拖曳區塊 */
         .drop-zone {
             border: 3px dashed #ccc;
             border-radius: 12px;
@@ -70,6 +69,22 @@
         .drop-zone input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         .icon-upload { font-size: 40px; margin-bottom: 10px; }
 
+        /* 濾鏡選項區 */
+        .filter-options {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f4f8;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+        .filter-options input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
         textarea {
             width: 100%;
             height: 100px;
@@ -82,24 +97,20 @@
             box-sizing: border-box;
         }
 
-        /* 按鈕群組 */
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         button { padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-action { background: var(--police-blue); color: white; }
         .btn-clear { background: #eceff1; color: #455a64; }
 
-        /* 勤務按鈕區 (LINE & Map) */
         .duty-actions {
-            display: none; /* 解析成功後顯示 */
+            display: none; 
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-top: 15px;
         }
         .btn-line { background: var(--line-green); color: white; }
-        .btn-line:hover { background: #05b34c; }
         .btn-gmap { background: #4285f4; color: white; }
 
-        /* 歷史紀錄列表 */
         .history-section { margin-top: 30px; }
         .history-title { font-size: 1.1rem; font-weight: bold; color: var(--police-blue); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .history-list { list-style: none; padding: 0; margin: 0; }
@@ -112,7 +123,6 @@
             border-left: 4px solid #ddd;
             position: relative;
         }
-        .history-item.active { border-left-color: var(--police-blue); background: #f0f7ff; }
         .history-time { font-size: 0.85rem; color: #888; margin-bottom: 5px; }
         .history-coord { font-weight: bold; font-size: 1rem; color: #333; }
         .history-actions { margin-top: 10px; display: flex; gap: 10px; }
@@ -122,7 +132,6 @@
         #map { height: 400px; width: 100%; border-radius: 12px; margin-top: 15px; display: none; }
         #status-bar { display: none; padding: 10px; background: #e8f5e9; color: #2e7d32; border-radius: 8px; margin-bottom: 15px; text-align: center; }
         
-        /* 裁切視窗 */
         #cropModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; }
         .crop-container { flex: 1; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .crop-controls { height: 70px; background: #1a1a1a; display: flex; justify-content: center; gap: 20px; padding: 10px; align-items: center; }
@@ -131,20 +140,19 @@
         .btn-crop-cancel { background: #555; color: white; width: 100px; }
         
         #debug-preview { display: none; margin-top: 10px; text-align: center; }
-        #debug-preview img { max-height: 100px; border: 1px solid red; }
+        #debug-preview img { max-height: 100px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
 
 <header>
-    <h3>警察小幫手 v9</h3>
-    <small>勤務整合 | 歷史紀錄 | LINE 通報</small>
+    <h3>警察小幫手 v10</h3>
+    <small>勤務整合 | 螢幕翻拍優化</small>
 </header>
 
 <div class="container">
     <div id="status-bar">系統準備就緒</div>
 
-    <!-- 操作卡片 -->
     <div class="card">
         <div class="drop-zone" id="dropZone">
             <div class="icon-upload">📷</div>
@@ -152,8 +160,13 @@
             <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)">
         </div>
 
+        <div class="filter-options">
+            <input type="checkbox" id="useHighContrast">
+            <label for="useHighContrast">開啟強效濾鏡 (黑白二值化)<br><span style="font-size:0.8em; color:#666;">※ 一般翻拍螢幕請勿勾選，避免摩爾紋干擾</span></label>
+        </div>
+
         <div id="debug-preview">
-            <div style="font-size:0.8rem; color:#666;">增強預覽：</div>
+            <div style="font-size:0.8rem; color:#666;">機器讀取的影像：</div>
             <img id="processedImg" src="" />
         </div>
         
@@ -164,30 +177,23 @@
             <button class="btn-action" onclick="parseText()">🔍 解析座標</button>
         </div>
 
-        <!-- 勤務按鈕 (解析成功後出現) -->
         <div class="duty-actions" id="dutyActions">
             <button class="btn-gmap" onclick="openGoogleMaps()">🌏 開啟地圖</button>
             <button class="btn-line" onclick="shareToLine()">💬 傳送 LINE</button>
         </div>
     </div>
 
-    <!-- 地圖 -->
     <div id="map"></div>
 
-    <!-- 歷史紀錄區 -->
     <div class="history-section">
         <div class="history-title">
-            <span>📁 歷史紀錄 (本機端)</span>
+            <span>📁 歷史紀錄</span>
             <button class="btn-sm btn-clear" onclick="clearHistory()" style="width: auto;">全部清除</button>
         </div>
-        <ul class="history-list" id="historyList">
-            <!-- 歷史項目會插入這裡 -->
-            <li style="text-align:center; padding:20px; color:#888;">暫無紀錄</li>
-        </ul>
+        <ul class="history-list" id="historyList"></ul>
     </div>
 </div>
 
-<!-- 裁切模態框 -->
 <div id="cropModal">
     <div class="crop-container">
         <img id="imageToCrop" src="" alt="Source Image">
@@ -199,29 +205,25 @@
 </div>
 
 <script>
-    // --- 全域變數 ---
     let map, marker, sectorLayer;
     let cropper;
     let currentLat = null, currentLng = null;
-    let historyData = []; // 儲存歷史紀錄
+    let historyData = [];
 
-    // --- 初始化 ---
     window.onload = function() {
-        loadHistory(); // 載入歷史紀錄
+        loadHistory();
     };
 
-    // --- 1. 拖曳與檔案處理 ---
+    // --- 1. 檔案處理 ---
     const dropZone = document.getElementById('dropZone');
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, preventDefaults, false));
-    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, e => { e.preventDefault(); e.stopPropagation(); }, false));
     ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('dragover'), false));
     ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('dragover'), false));
-    dropZone.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
+    dropZone.addEventListener('drop', e => {
         const files = e.dataTransfer.files;
         if (files.length) processFile(files[0]);
-    }
+    }, false);
+
     function handleFileSelect(input) {
         if (input.files.length) processFile(input.files[0]);
         input.value = '';
@@ -232,7 +234,7 @@
         reader.readAsDataURL(file);
     }
 
-    // --- 2. 裁切與增強 ---
+    // --- 2. 裁切與影像處理 (優化版) ---
     function openCropModal(src) {
         const modal = document.getElementById('cropModal');
         const img = document.getElementById('imageToCrop');
@@ -256,11 +258,11 @@
         let canvas = cropper.getCroppedCanvas();
         closeCropModal();
         
-        // 智慧放大：確保寬度至少 600px 以利辨識
-        if (canvas.width < 600) {
-            const scale = 600 / canvas.width;
+        // 智慧放大
+        if (canvas.width < 800) {
+            const scale = 800 / canvas.width;
             const newC = document.createElement('canvas');
-            newC.width = 600;
+            newC.width = 800;
             newC.height = canvas.height * scale;
             const ctx = newC.getContext('2d');
             ctx.imageSmoothingEnabled = true;
@@ -269,22 +271,40 @@
             canvas = newC;
         }
 
-        // 影像增強
-        preprocessImage(canvas);
+        // 根據 checkbox 決定是否開啟強力濾鏡
+        const useHighContrast = document.getElementById('useHighContrast').checked;
+        preprocessImage(canvas, useHighContrast);
         
         document.getElementById('debug-preview').style.display = 'block';
         document.getElementById('processedImg').src = canvas.toDataURL();
         
         runOCR(canvas);
     }
-    function preprocessImage(canvas) {
+
+    function preprocessImage(canvas, highContrast) {
         const ctx = canvas.getContext('2d');
         const idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const d = idata.data;
+        
         for (let i = 0; i < d.length; i += 4) {
-            const avg = (d[i] + d[i+1] + d[i+2]) / 3;
-            const c = avg < 170 ? 0 : 255; // 二值化
-            d[i] = d[i+1] = d[i+2] = c;
+            // 計算亮度 (Luminance)
+            const avg = (0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+            
+            if (highContrast) {
+                // 強力二值化 (適合紙本、墨跡淡)
+                const c = avg < 160 ? 0 : 255;
+                d[i] = d[i+1] = d[i+2] = c;
+            } else {
+                // 僅灰階化 (適合螢幕翻拍，保留細節，避免摩爾紋變黑條)
+                // 稍微做一點點對比度增強
+                let c = avg;
+                // 簡單的對比度拉伸
+                c = (c - 50) * 1.2; 
+                if (c < 0) c = 0;
+                if (c > 255) c = 255;
+                
+                d[i] = d[i+1] = d[i+2] = c;
+            }
         }
         ctx.putImageData(idata, 0, 0);
     }
@@ -323,7 +343,6 @@
         currentLat = null;
         currentLng = null;
 
-        // 數字提取與拼接
         const tokens = text.match(/[0-9]+(?:\.[0-9]+)?/g);
         let latList = [], lngList = [];
 
@@ -336,11 +355,9 @@
             }
         }
 
-        // 選最長的
         if (latList.length) currentLat = latList.sort((a,b) => b.toString().length - a.toString().length)[0];
         if (lngList.length) currentLng = lngList.sort((a,b) => b.toString().length - a.toString().length)[0];
 
-        // 輔助資訊
         const dirM = text.match(/(?:方向角|Dir|AntennaDir|Azimuth)[^0-9\n]*([0-9]+(?:\.[0-9]+)?)/i);
         const cellM = text.match(/(?:CellID|CID|基站|編號)[^0-9\n]*([0-9]+)/i);
         
@@ -351,8 +368,6 @@
             bar.innerText = `✅ 定位成功: ${currentLat}, ${currentLng}`;
             showMap(currentLat, currentLng, dir, cellId);
             document.getElementById('dutyActions').style.display = 'grid';
-            
-            // 自動儲存歷史紀錄
             addToHistory(currentLat, currentLng, cellId, dir);
         } else {
             bar.innerText = '解析失敗，請手動修正';
@@ -365,12 +380,10 @@
         let raw = parseFloat(str.replace(/\./g, ""));
         if (isNaN(raw)) return;
         
-        // 緯度 21-27
         let lat = tryFit(raw, 21, 27);
         if (!lat && parseFloat(str) >= 21 && parseFloat(str) <= 27) lat = parseFloat(str);
         if (lat) latList.push(lat);
 
-        // 經度 118-124
         let lng = tryFit(raw, 118, 124);
         if (!lng && parseFloat(str) >= 118 && parseFloat(str) <= 124) lng = parseFloat(str);
         if (lng) lngList.push(lng);
@@ -428,32 +441,19 @@
         sectorLayer = L.polygon(pts, { color:'red', fillColor:'#ff5252', fillOpacity:0.4, weight:1 }).addTo(map);
     }
 
-    // --- 6. LINE 整合與導航 ---
     function openGoogleMaps() {
-        if (currentLat && currentLng) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`, '_blank');
-        }
+        if (currentLat && currentLng) window.open(`https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`, '_blank');
     }
 
     function shareToLine() {
         if (!currentLat || !currentLng) return;
-        
-        // 建立精美的文字訊息
         const date = new Date().toLocaleString('zh-TW', { hour12: false });
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
-        
-        let text = `🚨 [警用定位通報]\n`;
-        text += `時間: ${date}\n`;
-        text += `座標: ${currentLat}, ${currentLng}\n`;
-        text += `地圖連結: ${mapUrl}\n`;
-        text += `(此訊息由警察小幫手自動生成)`;
-
-        // 呼叫 LINE URL Scheme
-        const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
-        window.open(lineUrl, '_blank');
+        let text = `🚨 [警用定位通報]\n時間: ${date}\n座標: ${currentLat}, ${currentLng}\n地圖連結: ${mapUrl}`;
+        window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
     }
 
-    // --- 7. 歷史紀錄系統 (localStorage) ---
+    // --- 7. 歷史紀錄 ---
     function loadHistory() {
         const stored = localStorage.getItem('police_locate_history');
         if (stored) {
@@ -463,26 +463,15 @@
     }
 
     function addToHistory(lat, lng, cellId, dir) {
-        // 避免重複加入相同座標 (簡單判斷)
-        if (historyData.length > 0) {
-            const last = historyData[0];
-            if (last.lat === lat && last.lng === lng) return;
-        }
-
+        if (historyData.length > 0 && historyData[0].lat === lat && historyData[0].lng === lng) return;
         const newItem = {
             id: Date.now(),
             time: new Date().toLocaleString('zh-TW', { hour12: false }),
-            lat: lat,
-            lng: lng,
-            cellId: cellId || '無',
-            dir: dir || '無'
+            lat: lat, lng: lng,
+            cellId: cellId || '無', dir: dir || '無'
         };
-
-        // 加到最前面
         historyData.unshift(newItem);
-        // 只保留最近 20 筆
         if (historyData.length > 20) historyData.pop();
-
         localStorage.setItem('police_locate_history', JSON.stringify(historyData));
         renderHistory();
     }
@@ -490,12 +479,10 @@
     function renderHistory() {
         const list = document.getElementById('historyList');
         list.innerHTML = '';
-
         if (historyData.length === 0) {
             list.innerHTML = '<li style="text-align:center; padding:20px; color:#888;">暫無紀錄</li>';
             return;
         }
-
         historyData.forEach(item => {
             const li = document.createElement('li');
             li.className = 'history-item';
@@ -503,9 +490,7 @@
                 <button class="btn-del" onclick="deleteHistory(${item.id})">刪除</button>
                 <div class="history-time">${item.time}</div>
                 <div class="history-coord">${item.lat}, ${item.lng}</div>
-                <div style="font-size:0.9rem; color:#555; margin-top:4px;">
-                    基站: ${item.cellId} | 方向: ${item.dir}
-                </div>
+                <div style="font-size:0.9rem; color:#555; margin-top:4px;">基站: ${item.cellId} | 方向: ${item.dir}</div>
                 <div class="history-actions">
                     <button class="btn-sm btn-line" onclick="shareHistoryItem(${item.lat}, ${item.lng})">LINE</button>
                     <button class="btn-sm btn-gmap" onclick="openHistoryMap(${item.lat}, ${item.lng})">地圖</button>
@@ -522,14 +507,13 @@
     }
 
     function clearHistory() {
-        if(confirm("確定要清空所有歷史紀錄嗎？此動作無法復原。")) {
+        if(confirm("確定要清空所有歷史紀錄嗎？")) {
             historyData = [];
             localStorage.removeItem('police_locate_history');
             renderHistory();
         }
     }
 
-    // 歷史紀錄的按鈕動作
     function openHistoryMap(lat, lng) {
         window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
     }
@@ -549,7 +533,6 @@
         if (sectorLayer) map.removeLayer(sectorLayer);
         document.getElementById('map').style.display = 'none';
     }
-
 </script>
 
 </body>
