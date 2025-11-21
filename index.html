@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>警用定位助手 (v10 螢幕翻拍優化版)</title>
+    <title>警用定位助手 (v11 美化版)</title>
     
+    <!-- 引入 Google Fonts: Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
     <!-- Leaflet 地圖 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -18,167 +23,300 @@
 
     <style>
         :root {
-            --police-blue: #1a3b5d;
-            --police-light: #4a90e2;
-            --bg-color: #f4f6f8;
-            --line-green: #06c755;
+            --primary-color: #2c3e50;    /* 沉穩深藍 */
+            --accent-color: #3498db;     /* 亮眼藍 */
+            --success-color: #27ae60;    /* 成功綠 */
+            --warning-color: #f39c12;    /* 警告黃 */
+            --bg-color: #ecf0f1;         /* 柔和灰底 */
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #7f8c8d;
+            --line-color: #06c755;       /* LINE 品牌色 */
         }
 
         body {
-            font-family: -apple-system, "Microsoft JhengHei", sans-serif;
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            background: var(--bg-color);
-            color: #333;
-            overscroll-behavior: none; 
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
+        /* 頂部標題列 */
         header {
-            background: var(--police-blue);
+            background: linear-gradient(135deg, var(--primary-color), #34495e);
             color: white;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
+        header h1 { margin: 0; font-size: 1.4rem; font-weight: 700; letter-spacing: 1px; }
+        header small { display: block; margin-top: 5px; opacity: 0.9; font-size: 0.85rem; font-weight: 400; }
 
         .container {
-            padding: 15px;
+            padding: 20px;
             max-width: 800px;
             margin: 0 auto;
             padding-bottom: 100px;
         }
 
+        /* 通用卡片樣式 */
         .card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: transform 0.2s ease;
         }
 
+        /* 拖曳區塊美化 */
         .drop-zone {
-            border: 3px dashed #ccc;
+            border: 2px dashed #bdc3c7;
             border-radius: 12px;
-            padding: 30px 20px;
+            padding: 40px 20px;
             text-align: center;
             cursor: pointer;
             position: relative;
-            background: #fafafa;
-            transition: all 0.2s;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
         }
-        .drop-zone.dragover { background: #e3f2fd; border-color: var(--police-light); }
+        .drop-zone:hover, .drop-zone.dragover {
+            background: #ebf5fb;
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
         .drop-zone input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-        .icon-upload { font-size: 40px; margin-bottom: 10px; }
+        .icon-upload { font-size: 48px; margin-bottom: 10px; display: block; }
+        .drop-text-main { font-size: 1.1rem; font-weight: 500; color: var(--primary-color); }
+        .drop-text-sub { font-size: 0.9rem; color: var(--text-sub); margin-top: 5px; }
 
         /* 濾鏡選項區 */
         .filter-options {
-            margin-top: 15px;
-            padding: 10px;
-            background: #f0f4f8;
-            border-radius: 8px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7f9f9;
+            border-radius: 10px;
             display: flex;
-            align-items: center;
-            gap: 10px;
+            align-items: flex-start;
+            gap: 12px;
             font-size: 0.95rem;
+            border-left: 4px solid var(--text-sub);
         }
         .filter-options input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
         }
+        .filter-label strong { color: var(--primary-color); display: block; margin-bottom: 3px;}
+        .filter-label span { font-size: 0.85rem; color: var(--text-sub); }
+
+        /* 預覽與文字框 */
+        #debug-preview {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            background: #2c3e50;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        #debug-preview img { max-height: 120px; border: 1px solid #fff; max-width: 100%; }
+        .preview-label { color: #fff; font-size: 0.8rem; margin-bottom: 8px; display: block; }
 
         textarea {
             width: 100%;
-            height: 100px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
+            height: 110px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            padding: 15px;
             font-size: 16px;
-            margin-top: 15px;
-            font-family: monospace;
+            margin-top: 20px;
+            font-family: 'Monaco', 'Consolas', monospace;
             box-sizing: border-box;
+            transition: border-color 0.2s;
+            background: #fafafa;
         }
+        textarea:focus { outline: none; border-color: var(--accent-color); background: #fff; }
 
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        button { padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-action { background: var(--police-blue); color: white; }
-        .btn-clear { background: #eceff1; color: #455a64; }
+        /* 按鈕樣式 */
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        button {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:active { transform: scale(0.98); }
+        
+        .btn-action { background: var(--primary-color); color: white; box-shadow: 0 4px 10px rgba(44, 62, 80, 0.2); }
+        .btn-action:hover { background: #34495e; box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3); }
+        
+        .btn-clear { background: #e0e0e0; color: #555; }
+        .btn-clear:hover { background: #d5d5d5; }
 
         .duty-actions {
-            display: none; 
+            display: none; /* 解析成功後顯示 */
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #eee;
         }
-        .btn-line { background: var(--line-green); color: white; }
-        .btn-gmap { background: #4285f4; color: white; }
+        .btn-line { background: var(--line-green); color: white; box-shadow: 0 4px 10px rgba(6, 199, 85, 0.2); }
+        .btn-line:hover { background: #05b34c; }
+        .btn-gmap { background: #4285f4; color: white; box-shadow: 0 4px 10px rgba(66, 133, 244, 0.2); }
+        .btn-gmap:hover { background: #3367d6; }
 
+        /* 歷史紀錄 */
         .history-section { margin-top: 30px; }
-        .history-title { font-size: 1.1rem; font-weight: bold; color: var(--police-blue); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .history-title { 
+            font-size: 1.2rem; 
+            font-weight: 700; 
+            color: var(--primary-color); 
+            margin-bottom: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            padding-left: 10px;
+            border-left: 5px solid var(--accent-color);
+        }
         .history-list { list-style: none; padding: 0; margin: 0; }
         .history-item {
             background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-left: 4px solid #ddd;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
             position: relative;
+            border: 1px solid #eee;
+            transition: transform 0.2s;
         }
-        .history-time { font-size: 0.85rem; color: #888; margin-bottom: 5px; }
-        .history-coord { font-weight: bold; font-size: 1rem; color: #333; }
-        .history-actions { margin-top: 10px; display: flex; gap: 10px; }
-        .btn-sm { padding: 6px 12px; font-size: 0.9rem; border-radius: 4px; }
-        .btn-del { background: #ff5252; color: white; position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 0.8rem; }
+        .history-item:hover { transform: translateX(3px); border-color: var(--accent-color); }
+        .history-time { font-size: 0.85rem; color: #95a5a6; margin-bottom: 5px; }
+        .history-coord { font-weight: 700; font-size: 1.1rem; color: var(--primary-color); font-family: monospace; }
+        .history-meta { font-size: 0.9rem; color: #666; margin-top: 5px; background: #f4f6f7; display: inline-block; padding: 3px 8px; border-radius: 4px;}
+        .history-actions { margin-top: 12px; display: flex; gap: 10px; }
+        
+        .btn-sm { padding: 8px 16px; font-size: 0.9rem; border-radius: 6px; }
+        .btn-del { 
+            background: transparent; 
+            color: #e74c3c; 
+            position: absolute; 
+            top: 15px; 
+            right: 15px; 
+            padding: 5px;
+            font-size: 0.9rem;
+            box-shadow: none;
+        }
+        .btn-del:hover { background: #fee; }
 
-        #map { height: 400px; width: 100%; border-radius: 12px; margin-top: 15px; display: none; }
-        #status-bar { display: none; padding: 10px; background: #e8f5e9; color: #2e7d32; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        #map { height: 400px; width: 100%; border-radius: 12px; margin-top: 20px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
-        #cropModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; }
-        .crop-container { flex: 1; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .crop-controls { height: 70px; background: #1a1a1a; display: flex; justify-content: center; gap: 20px; padding: 10px; align-items: center; }
+        #status-bar { 
+            display: none; 
+            padding: 12px; 
+            background: #d4edda; 
+            color: #155724; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            text-align: center; 
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        /* 裁切視窗優化 */
+        #cropModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 9999; flex-direction: column; }
+        .crop-hint-bar {
+            background: rgba(243, 156, 18, 0.9);
+            color: #fff;
+            padding: 12px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 1rem;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10001;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .crop-container { flex: 1; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; padding: 40px 20px 80px 20px; }
+        .crop-controls { 
+            height: 80px; 
+            background: #1e272e; 
+            display: flex; 
+            justify-content: center; 
+            gap: 20px; 
+            padding: 10px; 
+            align-items: center; 
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            z-index: 10001;
+        }
         #imageToCrop { max-width: 100%; max-height: 100%; }
-        .btn-crop-confirm { background: #2e7d32; color: white; width: 150px; }
+        .btn-crop-confirm { background: var(--success-color); color: white; width: 160px; font-size: 1.1rem; }
         .btn-crop-cancel { background: #555; color: white; width: 100px; }
-        
-        #debug-preview { display: none; margin-top: 10px; text-align: center; }
-        #debug-preview img { max-height: 100px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
 
 <header>
-    <h3>警察小幫手 v10</h3>
-    <small>勤務整合 | 螢幕翻拍優化</small>
+    <h1>👮‍♂️ 警察小幫手 v11</h1>
+    <small>勤務整合系統 | 歷史紀錄 | LINE 通報</small>
 </header>
 
 <div class="container">
     <div id="status-bar">系統準備就緒</div>
 
     <div class="card">
+        <!-- 拖曳區 -->
         <div class="drop-zone" id="dropZone">
-            <div class="icon-upload">📷</div>
-            <div>點擊或拖曳圖片至此</div>
+            <span class="icon-upload">📷</span>
+            <div class="drop-text-main">點擊或拖曳圖片至此</div>
+            <div class="drop-text-sub">支援手機截圖、翻拍螢幕照片</div>
             <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)">
         </div>
 
+        <!-- 濾鏡選項 -->
         <div class="filter-options">
             <input type="checkbox" id="useHighContrast">
-            <label for="useHighContrast">開啟強效濾鏡 (黑白二值化)<br><span style="font-size:0.8em; color:#666;">※ 一般翻拍螢幕請勿勾選，避免摩爾紋干擾</span></label>
+            <div class="filter-label">
+                <strong>開啟強效濾鏡 (黑白二值化)</strong>
+                <span>※ 適用於紙本文件或墨跡較淡的圖片。若為翻拍螢幕請<b>關閉</b>以避免摩爾紋干擾。</span>
+            </div>
         </div>
 
+        <!-- 預覽 -->
         <div id="debug-preview">
-            <div style="font-size:0.8rem; color:#666;">機器讀取的影像：</div>
+            <span class="preview-label">▼ 機器讀取的影像 (用於除錯)</span>
             <img id="processedImg" src="" />
         </div>
         
-        <textarea id="inputText" placeholder="OCR 結果或手動輸入座標..."></textarea>
+        <textarea id="inputText" placeholder="等待圖片解析... 
+OCR 結果將顯示於此，亦可手動輸入座標。"></textarea>
         
         <div class="btn-group">
-            <button class="btn-clear" onclick="resetAll()">清空重來</button>
-            <button class="btn-action" onclick="parseText()">🔍 解析座標</button>
+            <button class="btn-clear" onclick="resetAll()">🔄 清空重來</button>
+            <button class="btn-action" onclick="parseText()">🔍 開始解析</button>
         </div>
 
+        <!-- 勤務按鈕 -->
         <div class="duty-actions" id="dutyActions">
-            <button class="btn-gmap" onclick="openGoogleMaps()">🌏 開啟地圖</button>
+            <button class="btn-gmap" onclick="openGoogleMaps()">🌏 Google 地圖</button>
             <button class="btn-line" onclick="shareToLine()">💬 傳送 LINE</button>
         </div>
     </div>
@@ -187,14 +325,19 @@
 
     <div class="history-section">
         <div class="history-title">
-            <span>📁 歷史紀錄</span>
-            <button class="btn-sm btn-clear" onclick="clearHistory()" style="width: auto;">全部清除</button>
+            <span>📁 歷史紀錄 (本機)</span>
+            <button class="btn-sm btn-clear" onclick="clearHistory()" style="width: auto; padding: 5px 10px;">🗑️ 全部清除</button>
         </div>
         <ul class="history-list" id="historyList"></ul>
     </div>
 </div>
 
+<!-- 裁切視窗 -->
 <div id="cropModal">
+    <!-- 頂部提示條 -->
+    <div class="crop-hint-bar">
+        💡 訣竅：請盡量只框選「經緯度數字」，避開中文與雜訊！
+    </div>
     <div class="crop-container">
         <img id="imageToCrop" src="" alt="Source Image">
     </div>
@@ -234,7 +377,7 @@
         reader.readAsDataURL(file);
     }
 
-    // --- 2. 裁切與影像處理 (優化版) ---
+    // --- 2. 裁切與影像處理 ---
     function openCropModal(src) {
         const modal = document.getElementById('cropModal');
         const img = document.getElementById('imageToCrop');
@@ -258,7 +401,7 @@
         let canvas = cropper.getCroppedCanvas();
         closeCropModal();
         
-        // 智慧放大
+        // 智慧放大 (保持 v10 的 800px 邏輯)
         if (canvas.width < 800) {
             const scale = 800 / canvas.width;
             const newC = document.createElement('canvas');
@@ -271,7 +414,6 @@
             canvas = newC;
         }
 
-        // 根據 checkbox 決定是否開啟強力濾鏡
         const useHighContrast = document.getElementById('useHighContrast').checked;
         preprocessImage(canvas, useHighContrast);
         
@@ -283,44 +425,86 @@
 
     function preprocessImage(canvas, highContrast) {
         const ctx = canvas.getContext('2d');
-        const idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const d = idata.data;
+        let idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let d = idata.data;
         
+        // 1. 灰階與對比度調整
         for (let i = 0; i < d.length; i += 4) {
-            // 計算亮度 (Luminance)
             const avg = (0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
-            
             if (highContrast) {
-                // 強力二值化 (適合紙本、墨跡淡)
                 const c = avg < 160 ? 0 : 255;
                 d[i] = d[i+1] = d[i+2] = c;
             } else {
-                // 僅灰階化 (適合螢幕翻拍，保留細節，避免摩爾紋變黑條)
-                // 稍微做一點點對比度增強
                 let c = avg;
-                // 簡單的對比度拉伸
                 c = (c - 50) * 1.2; 
                 if (c < 0) c = 0;
                 if (c > 255) c = 255;
-                
                 d[i] = d[i+1] = d[i+2] = c;
             }
         }
         ctx.putImageData(idata, 0, 0);
+
+        // 2. 影像銳化 (Sharpening) - 新增功能
+        // 使用卷積濾鏡來增強邊緣
+        if (!highContrast) { // 如果已經是高對比二值化，通常不需要再銳化
+            const sharpenKernel = [
+                0, -1,  0,
+                -1,  5, -1,
+                0, -1,  0
+            ];
+            idata = convolution(ctx, idata, sharpenKernel);
+            ctx.putImageData(idata, 0, 0);
+        }
+    }
+
+    // 卷積運算函式 (用於影像處理)
+    function convolution(ctx, idata, kernel) {
+        const side = Math.round(Math.sqrt(kernel.length));
+        const halfSide = Math.floor(side / 2);
+        const src = idata.data;
+        const w = idata.width;
+        const h = idata.height;
+        const output = ctx.createImageData(w, h);
+        const dst = output.data;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const dstOff = (y * w + x) * 4;
+                let r = 0, g = 0, b = 0;
+                for (let cy = 0; cy < side; cy++) {
+                    for (let cx = 0; cx < side; cx++) {
+                        const scy = y + cy - halfSide;
+                        const scx = x + cx - halfSide;
+                        if (scy >= 0 && scy < h && scx >= 0 && scx < w) {
+                            const srcOff = (scy * w + scx) * 4;
+                            const wt = kernel[cy * side + cx];
+                            r += src[srcOff] * wt;
+                            g += src[srcOff + 1] * wt;
+                            b += src[srcOff + 2] * wt;
+                        }
+                    }
+                }
+                dst[dstOff] = r;
+                dst[dstOff + 1] = g;
+                dst[dstOff + 2] = b;
+                dst[dstOff + 3] = 255; // Alpha
+            }
+        }
+        return output;
     }
 
     // --- 3. OCR 辨識 ---
     function runOCR(canvas) {
         const bar = document.getElementById('status-bar');
         bar.style.display = 'block';
-        bar.innerText = 'OCR 辨識中...';
-        bar.style.background = '#e3f2fd';
-        bar.style.color = '#1565c0';
+        bar.innerText = '⏳ 正在辨識中...';
+        bar.style.background = '#d6eaf8';
+        bar.style.color = '#2980b9';
         
         Tesseract.recognize(canvas, 'eng+chi_tra').then(({ data: { text } }) => {
-            bar.innerText = '辨識完成，解析中...';
-            bar.style.background = '#e8f5e9';
-            bar.style.color = '#2e7d32';
+            bar.innerText = '✅ 辨識完成，解析中...';
+            bar.style.background = '#d4edda';
+            bar.style.color = '#155724';
             
             let clean = text.replace(/O/g, '0').replace(/o/g, '0')
                             .replace(/l/g, '1').replace(/I/g, '1')
@@ -330,8 +514,9 @@
             parseText();
         }).catch(err => {
             console.error(err);
-            bar.innerText = '辨識失敗';
-            bar.style.color = 'red';
+            bar.innerText = '❌ 辨識失敗，請重試';
+            bar.style.background = '#f8d7da';
+            bar.style.color = '#721c24';
         });
     }
 
@@ -366,13 +551,15 @@
 
         if (currentLat && currentLng) {
             bar.innerText = `✅ 定位成功: ${currentLat}, ${currentLng}`;
+            bar.style.background = '#d4edda';
+            bar.style.color = '#155724';
             showMap(currentLat, currentLng, dir, cellId);
             document.getElementById('dutyActions').style.display = 'grid';
             addToHistory(currentLat, currentLng, cellId, dir);
         } else {
-            bar.innerText = '解析失敗，請手動修正';
-            bar.style.background = '#ffebee';
-            bar.style.color = '#c62828';
+            bar.innerText = '⚠️ 解析失敗，請手動修正文字框內的數字';
+            bar.style.background = '#fff3cd';
+            bar.style.color = '#856404';
         }
     }
 
@@ -413,7 +600,7 @@
         if (marker) map.removeLayer(marker);
         if (sectorLayer) map.removeLayer(sectorLayer);
 
-        let popMsg = `<b>定位點</b><br>${lat}, ${lng}`;
+        let popMsg = `<b>🎯 定位點</b><br>Lat: ${lat}<br>Lng: ${lng}`;
         if (cellId) popMsg += `<br>CID: ${cellId}`;
         
         marker = L.marker([lat, lng]).addTo(map).bindPopup(popMsg).openPopup();
@@ -421,8 +608,11 @@
         if (dir !== null) {
             drawSector(lat, lng, dir);
         } else {
-            sectorLayer = L.circle([lat, lng], { radius: 300, color: '#2196f3', fillOpacity: 0.2 }).addTo(map);
+            sectorLayer = L.circle([lat, lng], { radius: 300, color: '#3498db', fillOpacity: 0.2 }).addTo(map);
         }
+        
+        // 滾動到地圖
+        mapDiv.scrollIntoView({ behavior: 'smooth' });
     }
 
     function drawSector(lat, lng, angle) {
@@ -438,7 +628,7 @@
             pts.push([lat+dLat, lng+dLng]);
         }
         pts.push([lat, lng]);
-        sectorLayer = L.polygon(pts, { color:'red', fillColor:'#ff5252', fillOpacity:0.4, weight:1 }).addTo(map);
+        sectorLayer = L.polygon(pts, { color:'red', fillColor:'#e74c3c', fillOpacity:0.4, weight:1 }).addTo(map);
     }
 
     function openGoogleMaps() {
@@ -480,20 +670,22 @@
         const list = document.getElementById('historyList');
         list.innerHTML = '';
         if (historyData.length === 0) {
-            list.innerHTML = '<li style="text-align:center; padding:20px; color:#888;">暫無紀錄</li>';
+            list.innerHTML = '<li style="text-align:center; padding:30px; color:#bdc3c7; font-weight:500;">目前沒有歷史紀錄</li>';
             return;
         }
         historyData.forEach(item => {
             const li = document.createElement('li');
             li.className = 'history-item';
             li.innerHTML = `
-                <button class="btn-del" onclick="deleteHistory(${item.id})">刪除</button>
+                <button class="btn-del" onclick="deleteHistory(${item.id})">✕ 刪除</button>
                 <div class="history-time">${item.time}</div>
                 <div class="history-coord">${item.lat}, ${item.lng}</div>
-                <div style="font-size:0.9rem; color:#555; margin-top:4px;">基站: ${item.cellId} | 方向: ${item.dir}</div>
+                <div class="history-meta">
+                    <span>📡 CID: ${item.cellId}</span> | <span>🧭 Dir: ${item.dir}°</span>
+                </div>
                 <div class="history-actions">
-                    <button class="btn-sm btn-line" onclick="shareHistoryItem(${item.lat}, ${item.lng})">LINE</button>
-                    <button class="btn-sm btn-gmap" onclick="openHistoryMap(${item.lat}, ${item.lng})">地圖</button>
+                    <button class="btn-sm btn-line" onclick="shareHistoryItem(${item.lat}, ${item.lng})">💬 LINE</button>
+                    <button class="btn-sm btn-gmap" onclick="openHistoryMap(${item.lat}, ${item.lng})">🌏 地圖</button>
                 </div>
             `;
             list.appendChild(li);
@@ -532,6 +724,7 @@
         if (marker) map.removeLayer(marker);
         if (sectorLayer) map.removeLayer(sectorLayer);
         document.getElementById('map').style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 </script>
 
