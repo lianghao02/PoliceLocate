@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>警用定位助手 (v15 終極抗噪版)</title>
+    <title>警用定位助手 (v16 終極修復版)</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 
     <!-- Libraries -->
@@ -20,7 +19,7 @@
     <style>
         :root {
             --primary-color: #2c3e50;
-            --accent-color: #2980b9;
+            --accent-color: #e67e22; /* 改為活潑的橘色強調操作 */
             --success-color: #27ae60;
             --bg-color: #f0f2f5;
             --card-bg: #ffffff;
@@ -58,46 +57,41 @@
             border: 3px dashed #bdc3c7; border-radius: 12px; padding: 40px 20px; text-align: center;
             cursor: pointer; position: relative; background: #fcfcfc; transition: all 0.3s;
         }
-        .drop-zone:hover, .drop-zone.dragover { background: #eaf2f8; border-color: var(--accent-color); transform: scale(1.01); }
+        .drop-zone:hover, .drop-zone.dragover { background: #fef9e7; border-color: var(--accent-color); transform: scale(1.01); }
         .drop-zone input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         .icon-large { font-size: 48px; display: block; margin-bottom: 10px; }
         .paste-hint { display: inline-block; margin-top: 10px; padding: 5px 12px; background: #e8f6f3; color: #16a085; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
 
-        /* 模式切換區 */
-        .mode-switch {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            background: #f1f2f6;
-            padding: 5px;
+        /* 進階控制區 */
+        .controls-area {
+            background: #f8f9fa;
             border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
         }
-        .mode-option {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #7f8c8d;
-            transition: 0.3s;
-            border: 2px solid transparent;
+        .control-group {
+            margin-bottom: 15px;
         }
-        .mode-option.active {
-            background: white;
-            color: var(--primary-color);
-            border-color: var(--accent-color);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        .control-label {
+            font-weight: 700; color: var(--primary-color); display: flex; justify-content: space-between; margin-bottom: 5px;
         }
-        .mode-desc {
-            font-size: 0.85rem; color: #666; margin-top: 10px; padding: 0 5px;
+        .slider-container {
+            display: flex; align-items: center; gap: 10px;
         }
+        input[type="range"] {
+            flex: 1; cursor: pointer;
+        }
+        .checkbox-group {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .checkbox-group input { width: 18px; height: 18px; }
 
         /* 預覽與文字框 */
         #debug-preview { display: none; margin-top: 15px; text-align: center; background: #2c3e50; padding: 10px; border-radius: 8px; }
-        #debug-preview img { max-height: 120px; border: 1px solid #fff; background: white; }
-        
+        #debug-preview img { height: 80px; border: 1px solid #fff; background: white; object-fit: contain; }
+        .preview-title { color: #fff; font-size: 0.8rem; margin-bottom: 5px; display: block;}
+
         textarea {
             width: 100%; height: 100px; border: 2px solid #ecf0f1; border-radius: 10px; padding: 15px;
             font-size: 16px; margin-top: 20px; font-family: 'Monaco', monospace; box-sizing: border-box; background: #fafafa;
@@ -145,8 +139,8 @@
 <body>
 
 <header>
-    <h1>👮‍♂️ 警察小幫手 v15</h1>
-    <small>Telegram | 萬用剪貼 | 終極去網紋</small>
+    <h1>👮‍♂️ 警察小幫手 v16</h1>
+    <small>補字修復 | 自動轉黑白 | 抗摩爾紋</small>
 </header>
 
 <div class="container">
@@ -156,33 +150,41 @@
         <div class="drop-zone" id="dropZone">
             <span class="icon-large">📷</span>
             <div style="font-size:1.1rem; font-weight:500;">點擊、拖曳，或 Ctrl+V 貼上</div>
-            <span class="paste-hint">💡 支援螢幕翻拍照片</span>
+            <span class="paste-hint">💡 專門處理螢幕翻拍、字體破碎</span>
             <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)">
         </div>
 
-        <!-- 模式切換 -->
-        <div class="mode-switch">
-            <div class="mode-option active" id="modeScreen" onclick="setMode('screen')">
-                📱 翻拍螢幕 (去網紋)
+        <!-- 進階影像控制 -->
+        <div class="controls-area">
+            <div class="control-group">
+                <div class="control-label">
+                    <span>🔧 補字強度 (連通斷裂筆畫)</span>
+                    <span id="thickVal" style="color:var(--accent-color)">2</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" id="thickenRange" min="0" max="5" step="1" value="2" oninput="updatePreview()">
+                </div>
+                <div style="font-size:0.8rem; color:#666; margin-top:5px;">
+                    數字越碎，強度調越高。調太高可能會糊在一起。
+                </div>
             </div>
-            <div class="mode-option" id="modePaper" onclick="setMode('paper')">
-                📄 紙本文件 (高對比)
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="autoInvert" checked onchange="updatePreview()">
+                <label for="autoInvert" style="font-weight:500;">自動轉為「白底黑字」 (推薦開啟)</label>
             </div>
-        </div>
-        <div class="mode-desc" id="modeDesc">
-            當前模式：針對螢幕翻拍優化，自動模糊網格並強化文字對比。
         </div>
 
         <div id="debug-preview">
-            <div style="color:#fff; font-size:0.8rem; margin-bottom:5px;">▼ 機器讀取的影像 (處理後)</div>
+            <span class="preview-title">▼ 機器將讀取這張「修復後」的影像</span>
             <img id="processedImg" src="" />
         </div>
         
         <textarea id="inputText" placeholder="OCR 辨識結果..."></textarea>
         
         <div class="btn-group">
-            <button class="btn-clear" onclick="resetAll()">🔄 清空重來</button>
-            <button class="btn-action" onclick="parseText()">🔍 解析座標</button>
+            <button class="btn-clear" onclick="resetAll()">🔄 清空</button>
+            <button class="btn-action" onclick="runOCRFromPreview()">🔍 開始解析</button>
         </div>
 
         <div class="duty-actions" id="dutyActions">
@@ -221,20 +223,9 @@
     let currentLat = null, currentLng = null;
     let currentCellInfo = "";
     let historyData = [];
-    let currentMode = 'screen'; // 'screen' or 'paper'
+    let currentCanvas = null; // 暫存裁切後的原始 canvas
 
     window.onload = () => loadHistory();
-
-    // --- 模式切換 ---
-    function setMode(mode) {
-        currentMode = mode;
-        document.getElementById('modeScreen').classList.toggle('active', mode === 'screen');
-        document.getElementById('modePaper').classList.toggle('active', mode === 'paper');
-        const desc = mode === 'screen' 
-            ? "當前模式：針對螢幕翻拍優化，自動模糊網格並強化文字對比。" 
-            : "當前模式：針對紙本文件優化，使用二值化增強黑色字跡。";
-        document.getElementById('modeDesc').innerText = desc;
-    }
 
     // --- 檔案處理 ---
     const dropZone = document.getElementById('dropZone');
@@ -255,7 +246,7 @@
         reader.readAsDataURL(file);
     }
 
-    // --- 裁切與影像處理 ---
+    // --- 裁切 ---
     function openCropModal(src) {
         const modal = document.getElementById('cropModal');
         const img = document.getElementById('imageToCrop');
@@ -274,119 +265,141 @@
     
     function confirmCrop() {
         if (!cropper) return;
-        let canvas = cropper.getCroppedCanvas();
+        currentCanvas = cropper.getCroppedCanvas();
         closeCropModal();
         
-        // 統一尺寸以利運算
-        if (canvas.width < 800) {
-            const scale = 800 / canvas.width;
+        // 統一尺寸
+        if (currentCanvas.width < 800) {
+            const scale = 800 / currentCanvas.width;
             const newC = document.createElement('canvas');
-            newC.width = 800; newC.height = canvas.height * scale;
+            newC.width = 800; newC.height = currentCanvas.height * scale;
             const ctx = newC.getContext('2d');
             ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(canvas, 0, 0, newC.width, newC.height);
-            canvas = newC;
+            ctx.drawImage(currentCanvas, 0, 0, newC.width, newC.height);
+            currentCanvas = newC;
         }
 
-        preprocessImage(canvas, currentMode === 'paper');
-        document.getElementById('debug-preview').style.display = 'block';
-        document.getElementById('processedImg').src = canvas.toDataURL();
-        runOCR(canvas);
+        updatePreview(); // 立即執行一次預覽
     }
 
-    // 核心影像處理函式
-    function preprocessImage(canvas, isPaperMode) {
+    // --- 即時預覽與影像處理 ---
+    function updatePreview() {
+        if (!currentCanvas) return;
+        document.getElementById('thickVal').innerText = document.getElementById('thickenRange').value;
+        
+        // 複製一份 canvas 來處理，不影響原始檔
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = currentCanvas.width;
+        tempCanvas.height = currentCanvas.height;
+        const ctx = tempCanvas.getContext('2d');
+        ctx.drawImage(currentCanvas, 0, 0);
+
+        const thickness = parseInt(document.getElementById('thickenRange').value);
+        const autoInvert = document.getElementById('autoInvert').checked;
+
+        preprocessImage(tempCanvas, thickness, autoInvert);
+        
+        document.getElementById('debug-preview').style.display = 'block';
+        document.getElementById('processedImg').src = tempCanvas.toDataURL();
+    }
+
+    // 核心影像處理 (v16 升級版)
+    function preprocessImage(canvas, thickness, autoInvert) {
         const ctx = canvas.getContext('2d');
         let idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let d = idata.data;
         
-        // 1. 灰階化
-        grayscale(idata);
-
-        if (isPaperMode) {
-            // 紙本模式：簡單二值化 (High Contrast)
-            binarize(idata, 160);
-        } else {
-            // 螢幕模式：去網紋 (Anti-Moire)
-            // 步驟 A: 高斯模糊 (消除網格)
-            idata = gaussianBlur(idata, ctx, canvas.width, canvas.height);
-            // 步驟 B: 對比度增強 (讓文字浮現)
-            adjustContrast(idata, 1.5); 
-        }
-        
-        ctx.putImageData(idata, 0, 0);
-    }
-
-    function grayscale(idata) {
-        const d = idata.data;
+        // 1. 灰階化與亮度計算
+        let totalBrightness = 0;
         for (let i = 0; i < d.length; i += 4) {
             const avg = (0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
             d[i] = d[i+1] = d[i+2] = avg;
+            totalBrightness += avg;
         }
-    }
+        
+        // 2. 智慧反相 (如果是黑底白字，轉成白底黑字)
+        // 計算平均亮度 (0-255)
+        const avgBrightness = totalBrightness / (d.length / 4);
+        let isInverted = false;
+        
+        if (autoInvert && avgBrightness < 100) { // 畫面偏暗，極可能是黑底白字
+            for (let i = 0; i < d.length; i += 4) {
+                d[i] = 255 - d[i];
+                d[i+1] = 255 - d[i+1];
+                d[i+2] = 255 - d[i+2];
+            }
+            isInverted = true;
+        }
 
-    function binarize(idata, threshold) {
-        const d = idata.data;
+        // 3. 二值化 (讓背景全白，文字全黑)
+        // 使用簡單閾值，但為了保留文字細節，不宜切太死
+        const threshold = 180; 
         for (let i = 0; i < d.length; i += 4) {
+            // 如果是白底黑字，文字應該是暗的
             const v = d[i] < threshold ? 0 : 255;
             d[i] = d[i+1] = d[i+2] = v;
         }
-    }
+        
+        ctx.putImageData(idata, 0, 0);
 
-    function adjustContrast(idata, factor) {
-        const d = idata.data;
-        for (let i = 0; i < d.length; i += 4) {
-            // 簡單對比度公式: (val - 128) * factor + 128
-            let c = d[i];
-            c = (c - 128) * factor + 128;
-            if (c < 0) c = 0;
-            if (c > 255) c = 255;
-            d[i] = d[i+1] = d[i+2] = c;
+        // 4. 形態學膨脹 (補斷字) - 關鍵步驟
+        // 因為現在是白底黑字(0)，我們要「腐蝕」白色背景，等於「膨脹」黑色文字
+        if (thickness > 0) {
+            performErosion(canvas, thickness); // 對黑色區域進行擴張
         }
     }
 
-    // 3x3 高斯模糊 (近似)
-    function gaussianBlur(idata, ctx, w, h) {
-        // 為了效能，這裡使用一個簡單的 convolution 實作
-        const kernel = [
-            1/16, 2/16, 1/16,
-            2/16, 4/16, 2/16,
-            1/16, 2/16, 1/16
-        ];
-        const side = 3;
-        const halfSide = 1;
-        const src = idata.data;
-        const output = ctx.createImageData(w, h);
-        const dst = output.data;
+    // 簡單的腐蝕演算法 (最小值濾波) -> 用於加粗黑色文字
+    function performErosion(canvas, radius) {
+        if (radius === 0) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        const srcData = ctx.getImageData(0, 0, w, h);
+        const dstData = ctx.createImageData(w, h);
+        const src = srcData.data;
+        const dst = dstData.data;
 
+        // 只做水平與垂直方向的擴張，效率較高且適合數字
         for (let y = 0; y < h; y++) {
             for (let x = 0; x < w; x++) {
-                const dstOff = (y * w + x) * 4;
-                let r = 0;
-                for (let cy = 0; cy < side; cy++) {
-                    for (let cx = 0; cx < side; cx++) {
-                        const scy = y + cy - halfSide;
-                        const scx = x + cx - halfSide;
-                        if (scy >= 0 && scy < h && scx >= 0 && scx < w) {
-                            const srcOff = (scy * w + scx) * 4;
-                            const wt = kernel[cy * side + cx];
-                            r += src[srcOff] * wt;
+                let minVal = 255;
+                
+                // 搜尋周圍鄰居
+                for (let ky = -radius; ky <= radius; ky++) {
+                    for (let kx = -radius; kx <= radius; kx++) {
+                        const ny = y + ky;
+                        const nx = x + kx;
+                        if (ny >= 0 && ny < h && nx >= 0 && nx < w) {
+                            const idx = (ny * w + nx) * 4;
+                            // 取紅色通道即可(因為已是灰階)
+                            const val = src[idx]; 
+                            if (val < minVal) minVal = val;
                         }
                     }
                 }
-                dst[dstOff] = dst[dstOff+1] = dst[dstOff+2] = r;
-                dst[dstOff+3] = 255;
+                
+                const dstIdx = (y * w + x) * 4;
+                dst[dstIdx] = dst[dstIdx+1] = dst[dstIdx+2] = minVal;
+                dst[dstIdx+3] = 255;
             }
         }
-        return output;
+        ctx.putImageData(dstData, 0, 0);
     }
 
-    // --- OCR ---
-    function runOCR(canvas) {
+    // --- 執行 OCR (從預覽圖) ---
+    function runOCRFromPreview() {
+        const img = document.getElementById('processedImg');
+        if (!img.src || img.src === window.location.href) {
+            alert("請先選擇圖片並裁切！");
+            return;
+        }
+
         const bar = document.getElementById('status-bar');
-        bar.style.display = 'block'; bar.innerText = '⏳ 影像處理完畢，OCR 辨識中...';
+        bar.style.display = 'block'; bar.innerText = '⏳ 正在辨識中...';
         bar.style.background = '#d6eaf8'; bar.style.color = '#2980b9';
         
-        Tesseract.recognize(canvas, 'eng+chi_tra').then(({ data: { text } }) => {
+        Tesseract.recognize(img.src, 'eng+chi_tra').then(({ data: { text } }) => {
             bar.innerText = '✅ 辨識完成，解析中...';
             bar.style.background = '#d4edda'; bar.style.color = '#155724';
             let clean = text.replace(/O/g, '0').replace(/o/g, '0').replace(/l/g, '1').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/\|/g, '1');
@@ -397,7 +410,7 @@
         });
     }
 
-    // --- 解析與其他功能 (保持 v13) ---
+    // --- 解析與其他功能 (保持 v15) ---
     function parseText() {
         const text = document.getElementById('inputText').value;
         const bar = document.getElementById('status-bar');
@@ -431,7 +444,7 @@
             document.getElementById('dutyActions').style.display = 'grid';
             addToHistory(currentLat, currentLng, cellId, dir);
         } else {
-            bar.innerText = '⚠️ 解析失敗，請手動修正';
+            bar.innerText = '⚠️ 解析失敗，請調整「補字強度」後重試';
             bar.style.background = '#fff3cd'; bar.style.color = '#856404';
         }
     }
@@ -538,17 +551,18 @@
         if (!historyData.length) { list.innerHTML = '<li style="text-align:center;padding:20px;color:#aaa;">無紀錄</li>'; return; }
         historyData.forEach(item => {
             const li = document.createElement('li'); li.className = 'history-item';
-            li.innerHTML = `<button class="btn-del" onclick="deleteHistory(${item.id})">✕</button><div class="history-time">${item.time}</div><div class="history-coord">${item.lat}, ${item.lng}</div><div style="font-size:0.9rem;color:#777;">CID: ${item.cellId} | Dir: ${item.dir}°</div><div class="history-actions"><button class="btn-sm btn-gmap" onclick="openGoogleMaps()">地圖</button></div>`; // Simplified for brevity, full logic same as v13
-            // Note: Full buttons logic preserved in actual implementation above
+            li.innerHTML = `<button class="btn-del" onclick="deleteHistory(${item.id})">✕</button><div class="history-time">${item.time}</div><div class="history-coord">${item.lat}, ${item.lng}</div><div style="font-size:0.9rem;color:#777;">CID: ${item.cellId} | Dir: ${item.dir}°</div><div class="history-actions"><button class="btn-sm btn-gmap" onclick="openHistoryMap(${item.lat}, ${item.lng})">地圖</button></div>`; 
             list.appendChild(li);
         });
     }
     function deleteHistory(id) { historyData = historyData.filter(i => i.id !== id); localStorage.setItem('police_locate_history', JSON.stringify(historyData)); renderHistory(); }
     function clearHistory() { if(confirm("清空紀錄?")) { historyData = []; localStorage.removeItem('police_locate_history'); renderHistory(); } }
+    function openHistoryMap(lat, lng) { window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank'); }
     function resetAll() {
         document.getElementById('inputText').value = ''; document.getElementById('debug-preview').style.display = 'none';
         document.getElementById('dutyActions').style.display = 'none'; document.getElementById('fileInput').value = '';
         document.getElementById('status-bar').style.display = 'none'; if(marker) map.removeLayer(marker); if(sectorLayer) map.removeLayer(sectorLayer); document.getElementById('map').style.display = 'none'; window.scrollTo({top:0, behavior:'smooth'});
+        currentCanvas = null;
     }
 </script>
 
