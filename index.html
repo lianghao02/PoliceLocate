@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>警用定位助手 (v13 效率特化版)</title>
+    <title>警用定位助手 (v14 抗噪特化版)</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,8 +25,8 @@
             --bg-color: #f0f2f5;
             --card-bg: #ffffff;
             --line-color: #06c755;
-            --tg-color: #2481cc; /* Telegram 藍 */
-            --copy-color: #8e44ad; /* 複製按鈕紫 */
+            --tg-color: #2481cc; 
+            --copy-color: #8e44ad; 
         }
 
         body {
@@ -140,7 +140,7 @@
         .btn-action { background: var(--primary-color); color: white; }
         .btn-clear { background: #ecf0f1; color: #555; }
 
-        /* 勤務按鈕區 (重新佈局：2x2) */
+        /* 勤務按鈕區 */
         .duty-actions {
             display: none;
             grid-template-columns: 1fr 1fr;
@@ -149,7 +149,6 @@
             padding-top: 20px;
             border-top: 2px dashed #eee;
         }
-        /* 手機版單欄，平板以上雙欄 */
         @media (min-width: 500px) {
             .duty-actions { grid-template-columns: 1fr 1fr 1fr 1fr; } 
         }
@@ -206,8 +205,8 @@
 <body>
 
 <header>
-    <h1>👮‍♂️ 警察小幫手 v13</h1>
-    <small>Telegram 整合 | 萬用剪貼簿 | 效率特化</small>
+    <h1>👮‍♂️ 警察小幫手 v14</h1>
+    <small>Telegram | 萬用剪貼簿 | 抗摩爾紋</small>
 </header>
 
 <div class="container">
@@ -225,13 +224,13 @@
         <div class="filter-options">
             <input type="checkbox" id="useHighContrast">
             <label for="useHighContrast">
-                <strong style="color:var(--primary-color)">開啟強效濾鏡 (黑白二值化)</strong><br>
-                <span style="font-size:0.85rem; color:#7f8c8d">※ 翻拍螢幕請<b>關閉</b>以免摩爾紋干擾。紙本可開啟。</span>
+                <strong style="color:var(--primary-color)">開啟強效濾鏡 (紙本文件模式)</strong><br>
+                <span style="font-size:0.85rem; color:#7f8c8d">※ 警告：翻拍螢幕請<b>關閉</b>此選項，否則會產生嚴重雜訊。</span>
             </label>
         </div>
 
         <div id="debug-preview">
-            <div style="color:#fff; font-size:0.8rem; margin-bottom:5px;">▼ 機器讀取的影像</div>
+            <div style="color:#fff; font-size:0.8rem; margin-bottom:5px;">▼ 機器讀取的影像 (抗噪處理後)</div>
             <img id="processedImg" src="" />
         </div>
         
@@ -242,7 +241,7 @@
             <button class="btn-action" onclick="parseText()">🔍 開始解析</button>
         </div>
 
-        <!-- 勤務功能區 (重點更新) -->
+        <!-- 勤務功能區 -->
         <div class="duty-actions" id="dutyActions">
             <button class="btn-gmap" onclick="openGoogleMaps()">🌏 地圖</button>
             <button class="btn-copy" id="btnCopy" onclick="copyToClipboard()">📋 複製文字</button>
@@ -279,7 +278,7 @@
     let map, marker, sectorLayer;
     let cropper;
     let currentLat = null, currentLng = null;
-    let currentCellInfo = ""; // 暫存基站資訊供複製使用
+    let currentCellInfo = ""; 
     let historyData = [];
 
     window.onload = () => loadHistory();
@@ -310,7 +309,7 @@
         reader.readAsDataURL(file);
     }
 
-    // --- 2. 裁切與影像處理 ---
+    // --- 2. 裁切與影像處理 (v14 優化：移除預設銳化) ---
     function openCropModal(src) {
         const modal = document.getElementById('cropModal');
         const img = document.getElementById('imageToCrop');
@@ -354,46 +353,21 @@
         let d = idata.data;
         for (let i = 0; i < d.length; i += 4) {
             const avg = (0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+            
             if (highContrast) {
-                const c = avg < 160 ? 0 : 255; d[i] = d[i+1] = d[i+2] = c;
-            } else {
-                let c = (avg - 50) * 1.2; if (c < 0) c = 0; if (c > 255) c = 255;
+                // 紙本模式：強烈黑白對比
+                const c = avg < 160 ? 0 : 255; 
                 d[i] = d[i+1] = d[i+2] = c;
+            } else {
+                // 螢幕翻拍模式 (v14 修改)：純灰階 + 輕微 Gamma，不銳化，不二值化
+                // 這樣可以保留文字邊緣的模糊感，避免摩爾紋變成實線
+                d[i] = d[i+1] = d[i+2] = avg; 
             }
         }
         ctx.putImageData(idata, 0, 0);
-        if (!highContrast) {
-            const sharpenKernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
-            idata = convolution(ctx, idata, sharpenKernel);
-            ctx.putImageData(idata, 0, 0);
-        }
-    }
-
-    function convolution(ctx, idata, kernel) {
-        const side = Math.round(Math.sqrt(kernel.length));
-        const half = Math.floor(side / 2);
-        const src = idata.data;
-        const w = idata.width; const h = idata.height;
-        const output = ctx.createImageData(w, h);
-        const dst = output.data;
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                const dstOff = (y * w + x) * 4;
-                let r=0, g=0, b=0;
-                for (let cy=0; cy<side; cy++) {
-                    for (let cx=0; cx<side; cx++) {
-                        const scy = y + cy - half; const scx = x + cx - half;
-                        if (scy >= 0 && scy < h && scx >= 0 && scx < w) {
-                            const srcOff = (scy * w + scx) * 4;
-                            const wt = kernel[cy * side + cx];
-                            r += src[srcOff] * wt; g += src[srcOff+1] * wt; b += src[srcOff+2] * wt;
-                        }
-                    }
-                }
-                dst[dstOff] = r; dst[dstOff+1] = g; dst[dstOff+2] = b; dst[dstOff+3] = 255;
-            }
-        }
-        return output;
+        
+        // 注意：v14 移除了預設的 convolution (銳化) 步驟
+        // 因為銳化會強化螢幕網格，導致 OCR 失敗
     }
 
     // --- 3. OCR ---
@@ -437,7 +411,6 @@
         let dir = dirM ? parseFloat(dirM[1]) : null;
         let cellId = cellM ? cellM[1] : null;
 
-        // 組合基站資訊文字
         if(cellId) currentCellInfo += `基站:${cellId} `;
         if(dir !== null) currentCellInfo += `方向:${dir}° `;
 
@@ -511,7 +484,7 @@
         sectorLayer = L.polygon(pts, { color:'red', fillColor:'#e74c3c', fillOpacity:0.4, weight:1 }).addTo(map);
     }
 
-    // --- 6. 分享與通報功能 (重點) ---
+    // --- 6. 分享與通報功能 ---
     function openGoogleMaps() {
         if (currentLat && currentLng) window.open(`https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`, '_blank');
     }
@@ -527,7 +500,6 @@
         if (!currentLat || !currentLng) return;
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
         let text = `🚨 [警用定位通報]\n座標: ${currentLat}, ${currentLng}\n${currentCellInfo}`;
-        // 使用 Telegram Web Share API
         const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(text)}`;
         window.open(tgUrl, '_blank');
     }
@@ -536,14 +508,11 @@
         if (!currentLat || !currentLng) return;
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
         const time = new Date().toLocaleString('zh-TW', { hour12: false });
-        
         const fullText = `【定位通報】\n時間: ${time}\n座標: ${currentLat}, ${currentLng}\n${currentCellInfo}\n地圖: ${mapUrl}`;
         
-        // 使用現代 Clipboard API
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(fullText).then(() => showCopySuccess());
         } else {
-            // 備用方案 (針對老舊瀏覽器/http環境)
             const textArea = document.createElement("textarea");
             textArea.value = fullText;
             textArea.style.position = "fixed";
@@ -567,7 +536,7 @@
         btn.style.background = '#27ae60';
         setTimeout(() => {
             btn.innerHTML = originalText;
-            btn.style.background = ''; // 回復 CSS 定義的顏色
+            btn.style.background = '';
         }, 1500);
     }
 
@@ -635,11 +604,9 @@
         window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
     }
     
-    // 歷史紀錄的分享功能
     function copyHistoryItem(lat, lng, cid, dir) {
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
         const text = `【歷史定位】\n座標: ${lat}, ${lng}\n基站: ${cid}, 方向: ${dir}°\n地圖: ${mapUrl}`;
-        
         const textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
