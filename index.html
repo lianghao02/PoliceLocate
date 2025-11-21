@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>警用定位助手 (v8 電腦增強版)</title>
+    
+    <!-- Leaflet 地圖 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Tesseract.js (OCR) -->
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+
+    <!-- Cropper.js (圖片裁切) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <style>
+        :root {
+            --police-blue: #1a3b5d;
+            --police-light: #4a90e2;
+            --bg-color: #f4f6f8;
+            --drag-over: #e3f2fd;
+        }
+
+        body {
+            font-family: -apple-system, "Microsoft JhengHei", sans-serif;
+            margin: 0;
+            background: var(--bg-color);
+            color: #333;
+            overscroll-behavior: none; 
+        }
+
+        header {
+            background: var(--police-blue);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px; /* 電腦版加寬 */
+            margin: 0 auto;
+            padding-bottom: 80px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        /* 拖曳區塊樣式 */
+        .drop-zone {
+            border: 3px dashed #ccc;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            background: #fafafa;
+            transition: all 0.2s;
+        }
+
+        .drop-zone.dragover {
+            background-color: var(--drag-over);
+            border-color: var(--police-light);
+            transform: scale(1.02);
+        }
+
+        .drop-zone p {
+            margin: 10px 0 0;
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .drop-zone input {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .icon-upload {
+            font-size: 48px;
+            color: var(--police-blue);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-action { background: var(--police-blue); color: white; }
+        .btn-action:hover { background: #0f2c4a; }
+        .btn-clear { background: #eceff1; color: #455a64; }
+        .btn-clear:hover { background: #cfd8dc; }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            font-size: 16px;
+            font-family: monospace; /* 等寬字體方便看數字 */
+            margin-top: 15px;
+        }
+
+        /* 裁切視窗 */
+        #cropModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            flex-direction: column;
+        }
+
+        .crop-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .crop-controls {
+            height: 70px;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px;
+            align-items: center;
+        }
+
+        .btn-crop-cancel { background: #444; color: white; width: 120px; }
+        .btn-crop-confirm { background: #2e7d32; color: white; width: 180px; font-size: 1.1rem; }
+
+        #imageToCrop {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #status-bar {
+            display: none;
+            padding: 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        #result-box {
+            display: none;
+            background: #fff3e0;
+            border-left: 5px solid #ff9800;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        #map {
+            height: 450px;
+            width: 100%;
+            border-radius: 12px;
+            display: none;
+            margin-top: 15px;
+        }
+
+        .btn-gmap {
+            display: none;
+            width: 100%;
+            background: #2e7d32;
+            color: white;
+            margin-top: 15px;
+            padding: 15px;
+            font-size: 1.1rem;
+        }
+
+        #debug-preview {
+            display: none;
+            margin-top: 15px;
+            text-align: center;
+            border: 1px dashed #ccc;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        #debug-preview img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #333;
+        }
+        .debug-hint { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>警察小幫手 v8 (電腦增強版)</h2>
+    <small>支援拖曳上傳 • 原始畫質裁切 • 智慧拼接</small>
+</header>
+
+<div class="container">
+    <div id="status-bar">系統準備就緒</div>
+
+    <div class="card">
+        <!-- 拖曳區 -->
+        <div class="drop-zone" id="dropZone">
+            <div class="icon-upload">📂</div>
+            <p>點擊選擇圖片 或 將圖片拖曳至此</p>
+            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)">
+        </div>
+
+        <div id="debug-preview">
+            <div class="debug-hint">機器將讀取以下優化後的影像 (若字體模糊請重新裁切)：</div>
+            <img id="processedImg" src="" />
+        </div>
+        
+        <textarea id="inputText" placeholder="等待圖片解析..."></textarea>
+        
+        <div class="btn-group">
+            <button class="btn-clear" onclick="resetAll()">清空重來</button>
+            <button class="btn-action" onclick="parseText()">🔍 解析座標</button>
+        </div>
+    </div>
+
+    <div id="result-box"></div>
+    <div id="map"></div>
+    <button id="btnGmap" class="btn-gmap" onclick="openGoogleMaps()">🚀 開啟 Google Maps</button>
+</div>
+
+<!-- 裁切視窗 -->
+<div id="cropModal">
+    <div class="crop-container">
+        <img id="imageToCrop" src="" alt="Source Image">
+    </div>
+    <div class="crop-controls">
+        <button class="btn-crop-cancel" onclick="closeCropModal()">取消</button>
+        <button class="btn-crop-confirm" onclick="confirmCrop()">✂️ 確認裁切</button>
+    </div>
+</div>
+
+<script>
+    let map, marker, sectorLayer;
+    let cropper;
+    let foundLat, foundLng;
+
+    // --- 1. 拖曳與檔案處理 (電腦版優化) ---
+    const dropZone = document.getElementById('dropZone');
+
+    // 綁定拖曳事件
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() { dropZone.classList.add('dragover'); }
+    function unhighlight() { dropZone.classList.remove('dragover'); }
+
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+            processFile(files[0]);
+        }
+    }
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            processFile(input.files[0]);
+        }
+        input.value = '';
+    }
+
+    function processFile(file) {
+        const reader = new FileReader();
+        reader.onload = function (e) { openCropModal(e.target.result); }
+        reader.readAsDataURL(file);
+    }
+
+    // --- 2. 裁切與影像處理 (關鍵修正：移除強制縮放) ---
+
+    function openCropModal(imageSrc) {
+        const modal = document.getElementById('cropModal');
+        const image = document.getElementById('imageToCrop');
+        image.src = imageSrc;
+        modal.style.display = 'flex';
+        if (cropper) cropper.destroy();
+        
+        // 使用 setTimeout 確保圖片載入 DOM
+        setTimeout(() => {
+             cropper = new Cropper(image, {
+                viewMode: 1, 
+                dragMode: 'move', 
+                autoCropArea: 0.6, // 預設框稍微小一點，強迫使用者調整
+                restore: false, 
+                guides: true, 
+                center: true, 
+                highlight: false,
+                cropBoxMovable: true, 
+                cropBoxResizable: true, 
+                toggleDragModeOnDblclick: false,
+            });
+        }, 100);
+    }
+
+    function closeCropModal() {
+        document.getElementById('cropModal').style.display = 'none';
+        if (cropper) cropper.destroy();
+    }
+
+    function confirmCrop() {
+        if (!cropper) return;
+        
+        // [重點修正]：不設定 width/height，讓它輸出裁切區域的「原始像素」
+        // 這樣原圖是 4K，裁出來就是高清的
+        let rawCanvas = cropper.getCroppedCanvas(); 
+        
+        closeCropModal();
+        
+        // 檢查尺寸：如果裁切區域真的太小 (例如寬度小於 600)，才進行人工放大
+        // 這是為了讓 Tesseract 讀得懂小字
+        if (rawCanvas.width < 600) {
+            // 建立一個放大的 canvas
+            const scaleFactor = 600 / rawCanvas.width;
+            const newWidth = 600;
+            const newHeight = rawCanvas.height * scaleFactor;
+            
+            const scaledCanvas = document.createElement('canvas');
+            scaledCanvas.width = newWidth;
+            scaledCanvas.height = newHeight;
+            const ctx = scaledCanvas.getContext('2d');
+            
+            // 使用較高品質的縮放 (雖然瀏覽器預設通常是雙線性)
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(rawCanvas, 0, 0, newWidth, newHeight);
+            
+            rawCanvas = scaledCanvas;
+        }
+        
+        // 執行二值化增強
+        const processedCanvas = preprocessImage(rawCanvas);
+        
+        // 顯示預覽
+        const debugPreview = document.getElementById('debug-preview');
+        debugPreview.style.display = 'block';
+        document.getElementById('processedImg').src = processedCanvas.toDataURL();
+        
+        runOCR(processedCanvas);
+    }
+
+    // 二值化增強
+    function preprocessImage(canvas) {
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data; 
+        const threshold = 170; // 稍微提高閥值以過濾淺色背景雜訊
+
+        for (let i = 0; i < data.length; i += 4) {
+            const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            const color = avg < threshold ? 0 : 255;
+            data[i] = color;     
+            data[i + 1] = color; 
+            data[i + 2] = color; 
+        }
+        ctx.putImageData(imageData, 0, 0);
+        return canvas;
+    }
+
+    function runOCR(canvas) {
+        const statusBar = document.getElementById('status-bar');
+        const textArea = document.getElementById('inputText');
+        
+        statusBar.style.display = 'block';
+        statusBar.innerText = '正在辨識中... (雙語引擎)';
+        statusBar.style.background = '#e3f2fd';
+        
+        Tesseract.recognize(canvas, 'eng+chi_tra', {
+            logger: m => { 
+                if (m.status === 'recognizing text') statusBar.innerText = `辨識進度... ${(m.progress * 100).toFixed(0)}%`;
+            }
+        }).then(({ data: { text } }) => {
+            statusBar.innerText = '辨識完成！';
+            statusBar.style.background = '#e8f5e9';
+            
+            // 清洗常見錯誤
+            let cleanText = text
+                .replace(/O/g, '0').replace(/o/g, '0')
+                .replace(/l/g, '1').replace(/I/g, '1')
+                .replace(/S/g, '5').replace(/B/g, '8')
+                .replace(/\|/g, '1'); // 游標符號常被看成 1
+            
+            textArea.value = cleanText;
+            setTimeout(parseText, 500);
+        }).catch(err => {
+            console.error(err);
+            statusBar.innerText = '辨識失敗';
+        });
+    }
+
+    // --- 3. 解析與拼接 (v7 邏輯移植) ---
+
+    function parseText() {
+        const text = document.getElementById('inputText').value;
+        const statusBar = document.getElementById('status-bar');
+        
+        foundLat = null;
+        foundLng = null;
+        let parseMethod = "";
+
+        // 數字提取與拼接
+        const numberPattern = /[0-9]+(?:\.[0-9]+)?/g;
+        const tokens = text.match(numberPattern);
+        
+        let latCandidates = [];
+        let lngCandidates = [];
+
+        if (tokens) {
+            for (let i = 0; i < tokens.length; i++) {
+                let currentToken = tokens[i];
+                checkAndAddCandidate(currentToken, latCandidates, lngCandidates, false);
+
+                // 智慧拼接 (Smart Stitching)
+                if (i < tokens.length - 1) {
+                    let nextToken = tokens[i+1];
+                    let stitchedWithDot = currentToken + "." + nextToken;
+                    checkAndAddCandidate(stitchedWithDot, latCandidates, lngCandidates, true);
+                }
+            }
+        }
+
+        // 選擇最精確(最長)的座標
+        if (latCandidates.length > 0) {
+            foundLat = latCandidates.sort((a,b) => b.toString().length - a.toString().length)[0];
+        }
+        if (lngCandidates.length > 0) {
+            foundLng = lngCandidates.sort((a,b) => b.toString().length - a.toString().length)[0];
+        }
+
+        if (foundLat && foundLng) parseMethod = "智慧拼接";
+
+        // 輔助資訊
+        const dirRegex = /(?:方向角|Dir|AntennaDir|Azimuth)[^0-9\n]*([0-9]+(?:\.[0-9]+)?)/i;
+        const cellRegex = /(?:CellID|CID|基站|編號)[^0-9\n]*([0-9]+)/i;
+        let dirMatch = text.match(dirRegex);
+        let cellMatch = text.match(cellRegex);
+
+        if (foundLat && foundLng) {
+            statusBar.innerHTML = `✅ 解析成功 (${parseMethod})`;
+            statusBar.style.color = '#1b5e20';
+            showResult(foundLat, foundLng, dirMatch ? parseFloat(dirMatch[1]) : null, cellMatch ? cellMatch[1] : null);
+        } else {
+            statusBar.innerText = '解析失敗，請手動輸入。';
+            statusBar.style.color = '#c62828';
+            statusBar.style.background = '#ffebee';
+            alert("OCR 無法還原座標。\n\n請查看頁面上方的預覽圖，並手動修正文字框中的數字。");
+        }
+    }
+
+    function checkAndAddCandidate(numStr, latList, lngList, isStitched) {
+        let rawNum = parseFloat(numStr.replace(/\./g, ""));
+        if (isNaN(rawNum)) return;
+
+        let latVal = tryFitRange(rawNum, 21, 27);
+        if (!latVal && isStitched) {
+            let floatVal = parseFloat(numStr);
+            if (floatVal >= 21 && floatVal <= 27) latVal = floatVal;
+        }
+        if (latVal) latList.push(latVal);
+
+        let lngVal = tryFitRange(rawNum, 118, 124);
+        if (!lngVal && isStitched) {
+            let floatVal = parseFloat(numStr);
+            if (floatVal >= 118 && floatVal <= 124) lngVal = floatVal;
+        }
+        if (lngVal) lngList.push(lngVal);
+    }
+
+    function tryFitRange(num, min, max) {
+        let temp = num;
+        if (temp >= min && temp <= max) return temp;
+        while (temp > max) { temp /= 10; }
+        if (temp >= min) return temp;
+        return null;
+    }
+
+    function showResult(lat, lng, dir, cellId) {
+        const resultBox = document.getElementById('result-box');
+        const mapDiv = document.getElementById('map');
+        const btnGmap = document.getElementById('btnGmap');
+
+        let html = `<strong>📍 定位成功</strong><br>緯度 (Lat): ${lat}<br>經度 (Lng): ${lng}`;
+        if (cellId) html += `<br>📡 基站編號: ${cellId}`;
+        if (dir !== null) html += `<br>🧭 天線方向: ${dir}°`;
+        
+        resultBox.innerHTML = html;
+        resultBox.style.display = 'block';
+        mapDiv.style.display = 'block';
+        btnGmap.style.display = 'block';
+
+        if (!map) {
+            map = L.map('map').setView([lat, lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+        } else {
+            map.invalidateSize();
+            map.setView([lat, lng], 16);
+        }
+
+        if (marker) map.removeLayer(marker);
+        if (sectorLayer) map.removeLayer(sectorLayer);
+
+        marker = L.marker([lat, lng]).addTo(map)
+            .bindPopup(html).openPopup();
+
+        if (dir !== null) {
+            drawSector(lat, lng, dir);
+        } else {
+            sectorLayer = L.circle([lat, lng], {
+                radius: 300, color: '#2196f3', fillOpacity: 0.2
+            }).addTo(map);
+        }
+    }
+
+    function drawSector(lat, lng, angle) {
+        const radius = 500; 
+        const spread = 60; 
+        const startAngle = (90 - (angle - spread/2)) * (Math.PI / 180);
+        const endAngle = (90 - (angle + spread/2)) * (Math.PI / 180);
+        let points = [[lat, lng]];
+        const steps = 15;
+        for (let i = 0; i <= steps; i++) {
+            let currentRad = startAngle - (i / steps) * (startAngle - endAngle);
+            let dLat = (radius / 111000) * Math.sin(currentRad);
+            let dLng = (radius / (111000 * Math.cos(lat * Math.PI / 180))) * Math.cos(currentRad);
+            points.push([lat + dLat, lng + dLng]);
+        }
+        points.push([lat, lng]);
+        sectorLayer = L.polygon(points, {
+            color: 'red', fillColor: '#ff5252', fillOpacity: 0.4, weight: 1
+        }).addTo(map);
+    }
+
+    function openGoogleMaps() {
+        if (foundLat && foundLng) {
+            const url = `https://www.google.com/maps/search/?api=1&query=${foundLat},${foundLng}`;
+            window.open(url, '_blank');
+        }
+    }
+
+    function resetAll() {
+        document.getElementById('inputText').value = '';
+        document.getElementById('result-box').style.display = 'none';
+        document.getElementById('map').style.display = 'none';
+        document.getElementById('btnGmap').style.display = 'none';
+        document.getElementById('status-bar').style.display = 'none';
+        document.getElementById('fileInput').value = '';
+        document.getElementById('debug-preview').style.display = 'none';
+        if(marker) map.removeLayer(marker);
+    }
+</script>
+
+</body>
+</html>
