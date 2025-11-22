@@ -293,6 +293,44 @@
             font-size: 0.75rem;
             color: #bdc3c7;
         }
+
+        /* 電腦版雙欄佈局 */
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 1200px;
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 20px;
+                align-items: start;
+            }
+
+            .main-content {
+                min-width: 0;
+                /* 防止 grid item 溢出 */
+            }
+
+            .history-sec {
+                margin-top: 0;
+                background: var(--white);
+                padding: 20px;
+                border-radius: 16px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                position: sticky;
+                top: 90px;
+                max-height: calc(100vh - 120px);
+                overflow-y: auto;
+            }
+
+            .hist-head {
+                margin-top: 0;
+                padding-top: 0;
+            }
+
+            /* 調整歷史紀錄列表樣式以適應側邊欄 */
+            .history-sec li {
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 
@@ -304,71 +342,87 @@
     </header>
 
     <div class="container">
-        <div class="card">
-            <div class="hint"><i class="fa-solid fa-wand-magic-sparkles"></i> 貼上整段文字，自動辨識座標與門號</div>
-            <textarea id="rawInput" class="smart-area" placeholder="長按貼上... (支援 LINE/簡訊 格式)"></textarea>
-            <button class="btn btn-main" onclick="app.parse()">
-                <i class="fa-solid fa-bolt"></i> 解析並定位
-            </button>
+        <div class="main-content">
+            <div class="card">
+                <div class="hint"><i class="fa-solid fa-wand-magic-sparkles"></i> 貼上整段文字，自動辨識座標與門號</div>
+                <textarea id="rawInput" class="smart-area" placeholder="長按貼上... (支援 LINE/簡訊 格式)"></textarea>
 
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <label><i class="fa-solid fa-mobile-screen"></i> 門號</label>
-                    <input type="tel" id="phone" class="phone-input" placeholder="09xxxxxxxx" readonly
-                        onclick="this.removeAttribute('readonly')">
+                <!-- 新增：貼上與清除按鈕 -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn" style="background: #16a085; flex: 1;" onclick="app.pasteInput()">
+                        <i class="fa-solid fa-paste"></i> 貼上
+                    </button>
+                    <button class="btn" style="background: #95a5a6; flex: 1;" onclick="app.clearInput()">
+                        <i class="fa-solid fa-eraser"></i> 清空
+                    </button>
+                </div>
+
+                <button class="btn btn-main" onclick="app.parse()">
+                    <i class="fa-solid fa-bolt"></i> 解析並定位
+                </button>
+
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label><i class="fa-solid fa-mobile-screen"></i> 門號</label>
+                        <input type="tel" id="phone" class="phone-input" placeholder="09xxxxxxxx" readonly
+                            onclick="this.removeAttribute('readonly')">
+                    </div>
+                </div>
+
+                <!-- 新增：定位請求時間 -->
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label><i class="fa-regular fa-clock"></i> 定位請求時間</label>
+                        <input type="text" id="reqTime" placeholder="yyyy/MM/dd HH:mm:ss">
+                    </div>
+                </div>
+
+                <!-- 新增：註冊基地台時間 -->
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label><i class="fa-solid fa-tower-cell"></i> 註冊基地台時間</label>
+                        <input type="text" id="regTime" placeholder="yyyy/MM/dd HH:mm:ss">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label>緯度 (Lat)</label>
+                        <input type="number" id="lat" step="any" placeholder="23.xxxxx">
+                    </div>
+                    <div class="input-wrapper">
+                        <label>經度 (Lng)</label>
+                        <input type="number" id="lng" step="any" placeholder="120.xxxxx">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label>方位角 <span style="font-weight:normal;color:#999;font-size:0.8rem">(0-360)</span></label>
+                        <input type="number" id="azi" placeholder="選填">
+                    </div>
+                </div>
+
+                <div class="action-grid">
+                    <button class="btn btn-map" onclick="app.openMap()"><i class="fa-solid fa-map-location-dot"></i>
+                        Google
+                        Map</button>
+                    <button class="btn btn-copy" onclick="app.copy()"><i class="fa-solid fa-copy"></i> 複製資訊</button>
+                    <button class="btn btn-tg" onclick="app.share('tg')"><i class="fa-brands fa-telegram"></i>
+                        Telegram</button>
+                    <button class="btn btn-line" onclick="app.share('line')"><i class="fa-brands fa-line"></i>
+                        LINE</button>
                 </div>
             </div>
 
-            <!-- 新增：定位請求時間 -->
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <label><i class="fa-regular fa-clock"></i> 定位請求時間</label>
-                    <input type="text" id="reqTime" placeholder="yyyy/MM/dd HH:mm:ss">
-                </div>
-            </div>
-
-            <!-- 新增：註冊基地台時間 -->
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <label><i class="fa-solid fa-tower-cell"></i> 註冊基地台時間</label>
-                    <input type="text" id="regTime" placeholder="yyyy/MM/dd HH:mm:ss">
-                </div>
-            </div>
-
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <label>緯度 (Lat)</label>
-                    <input type="number" id="lat" step="any" placeholder="23.xxxxx">
-                </div>
-                <div class="input-wrapper">
-                    <label>經度 (Lng)</label>
-                    <input type="number" id="lng" step="any" placeholder="120.xxxxx">
-                </div>
-            </div>
-
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <label>方位角 <span style="font-weight:normal;color:#999;font-size:0.8rem">(0-360)</span></label>
-                    <input type="number" id="azi" placeholder="選填">
-                </div>
-            </div>
-
-            <div class="action-grid">
-                <button class="btn btn-map" onclick="app.openMap()"><i class="fa-solid fa-map-location-dot"></i> Google
-                    Map</button>
-                <button class="btn btn-copy" onclick="app.copy()"><i class="fa-solid fa-copy"></i> 複製資訊</button>
-                <button class="btn btn-tg" onclick="app.share('tg')"><i class="fa-brands fa-telegram"></i>
-                    Telegram</button>
-                <button class="btn btn-line" onclick="app.share('line')"><i class="fa-brands fa-line"></i> LINE</button>
-            </div>
+            <div id="map"></div>
         </div>
-
-        <div id="map"></div>
 
         <div class="history-sec">
             <div class="hist-head">
                 <div class="hist-title">最近查詢</div>
-                <button class="btn-clear" onclick="app.clearHistory()"><i class="fa-solid fa-trash-can"></i> 清除</button>
+                <button class="btn-clear" onclick="app.clearHistory()"><i class="fa-solid fa-trash-can"></i>
+                    清除</button>
             </div>
             <ul id="list"></ul>
         </div>
@@ -380,6 +434,12 @@
     </div>
 
     <script>
+        // 全域錯誤攔截 (用於除錯)
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            alert('系統錯誤: ' + msg + '\nLine: ' + lineNo);
+            return false;
+        };
+
         /**
          * Police Locate Helper v50.0 (Official Release)
          * Encapsulated logic for security and performance.
@@ -394,16 +454,20 @@
 
             // 初始化
             function init() {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) history = JSON.parse(saved);
-                renderHistory();
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    if (saved) history = JSON.parse(saved);
+                    renderHistory();
 
-                // 監聽輸入框變更，即時更新地圖但不存歷史
-                // 加入 reqTime, regTime 監聽
-                ['lat', 'lng', 'phone', 'azi', 'reqTime', 'regTime'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.addEventListener('change', () => updateFromInput(false));
-                });
+                    // 監聽輸入框變更，即時更新地圖但不存歷史
+                    // 加入 reqTime, regTime 監聽
+                    ['lat', 'lng', 'phone', 'azi', 'reqTime', 'regTime'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.addEventListener('change', () => updateFromInput(false));
+                    });
+                } catch (e) {
+                    console.error('Init error:', e);
+                }
             }
 
             // 核心解析邏輯
@@ -421,15 +485,15 @@
 
                 // 2. 抓時間 (定位請求 & 註冊基地台)
                 // 格式：yyyy/MM/dd HH:mm:ss
-                // 使用較寬鬆的 regex 來匹配日期時間格式
-                const timeRegex = /(\d{4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}:\d{1,2})/;
+                // 使用字串拼接 RegExp 時，需要雙重跳脫字元
+                const timePattern = "(\\d{4}\\/\\d{1,2}\\/\\d{1,2}\\s+\\d{1,2}:\\d{1,2}:\\d{1,2})";
 
                 // 定位請求時間
-                const reqMatch = text.match(new RegExp(`(?:定位請求|Positioning Request)[^:：\\d]*[:：]?\\s*${timeRegex.source}`));
+                const reqMatch = text.match(new RegExp(`(?:定位請求|Positioning Request)[^:：\\d]*[:：]?\\s*${timePattern}`));
                 data.reqTime = reqMatch ? reqMatch[1] : '';
 
                 // 註冊基地台時間
-                const regMatch = text.match(new RegExp(`(?:註冊基地|Base Station Reg)[^:：\\d]*[:：]?\\s*${timeRegex.source}`));
+                const regMatch = text.match(new RegExp(`(?:註冊基地|Base Station Reg)[^:：\\d]*[:：]?\\s*${timePattern}`));
                 data.regTime = regMatch ? regMatch[1] : '';
 
                 // 3. 抓方位角
@@ -502,7 +566,9 @@
 
                 if (!map) {
                     map = L.map('map').setView([data.lat, data.lng], 16);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OSM'
+                    }).addTo(map);
                 } else {
                     map.setView([data.lat, data.lng], 16);
                     map.invalidateSize();
@@ -518,46 +584,42 @@
                 if (data.regTime) desc += `<br>📡 註冊: ${data.regTime}`;
                 if (data.azi !== null) desc += `<br>🧭 方位: ${data.azi}°`;
 
-                marker = L.marker([data.lat, data.lng]).addTo(map).bindPopup(desc).openPopup();
+                marker = L.marker([data.lat, data.lng]).addTo(map)
+                    .bindPopup(desc).openPopup();
 
+                // 繪製扇形 (若有方位角)
                 if (data.azi !== null) {
-                    drawSector(data.lat, data.lng, data.azi);
-                } else {
-                    sector = L.circle([data.lat, data.lng], { radius: 300, color: '#3498db', fillOpacity: 0.2 }).addTo(map);
+                    const r = 300; // 半徑
+                    const startAngle = (data.azi - 30) * (Math.PI / 180);
+                    const endAngle = (data.azi + 30) * (Math.PI / 180);
+                    const points = [[data.lat, data.lng]];
+
+                    for (let i = 0; i <= 20; i++) {
+                        const angle = startAngle + (endAngle - startAngle) * (i / 20);
+                        const dLat = (r / 111320) * Math.cos(angle);
+                        const dLng = (r / (111320 * Math.cos(data.lat * (Math.PI / 180)))) * Math.sin(angle);
+                        points.push([data.lat + dLat, data.lng + dLng]);
+                    }
+                    points.push([data.lat, data.lng]);
+
+                    sector = L.polygon(points, { color: 'red', fillOpacity: 0.1, weight: 1 }).addTo(map);
                 }
 
                 if (save) addHistory();
-                mapDiv.scrollIntoView({ behavior: 'smooth' });
             }
 
-            function drawSector(lat, lng, deg) {
-                const r = 500, spread = 60;
-                const start = (90 - (deg - spread / 2)) * (Math.PI / 180);
-                const end = (90 - (deg + spread / 2)) * (Math.PI / 180);
-                let pts = [[lat, lng]];
-                for (let i = 0; i <= 15; i++) {
-                    let a = start - (i / 15) * (start - end);
-                    let dLat = (r / 111000) * Math.sin(a);
-                    let dLng = (r / (111000 * Math.cos(lat * Math.PI / 180))) * Math.cos(a);
-                    pts.push([lat + dLat, lng + dLng]);
-                }
-                pts.push([lat, lng]);
-                sector = L.polygon(pts, { color: '#d35400', fillColor: '#e67e22', fillOpacity: 0.4, weight: 2 }).addTo(map);
-            }
-
-            // 功能按鈕
             function openMap() {
-                if (!data.lat) return alert('無座標');
-                window.open(`https://www.google.com/maps?q=${data.lat},${data.lng}`, '_blank');
+                if (data.lat) window.open(`https://www.google.com/maps?q=${data.lat},${data.lng}`, '_blank');
+                else alert('無座標');
             }
 
             function copy() {
                 if (!data.lat) return alert('無座標');
-                let t = `時間: ${new Date().toLocaleString()}\n`;
+                let t = '';
                 if (data.phone) t += `門號: ${data.phone}\n`;
-                if (data.reqTime) t += `請求時間: ${data.reqTime}\n`;
+                if (data.reqTime) t += `定位時間: ${data.reqTime}\n`;
                 if (data.regTime) t += `註冊時間: ${data.regTime}\n`;
-                t += `座標: ${data.lat}, ${data.lng}`;
+                t += `定位經緯度: ${data.lat}, ${data.lng}`;
                 if (data.azi) t += ` (方位:${data.azi})`;
                 t += `\nhttps://www.google.com/maps?q=${data.lat},${data.lng}`;
 
@@ -572,27 +634,59 @@
 
             function share(type) {
                 if (!data.lat) return alert('無座標');
-                let t = `🚨 定位: ${data.lat}, ${data.lng}`;
-                if (data.phone) t += ` (${data.phone})`;
-                const url = `https://maps.google.com/?q=${data.lat},${data.lng}`;
 
-                if (type === 'line') {
-                    t += `\n${url}`;
-                    window.open(`https://line.me/R/msg/text/?${encodeURIComponent(t)}`, '_blank');
+                // 構建分享文字，順序：電話 -> 定位時間 -> 註冊時間 -> 經緯度
+                let t = '';
+                if (data.phone) t += `門號: ${data.phone}\n`;
+                if (data.reqTime) t += `定位時間: ${data.reqTime}\n`;
+                if (data.regTime) t += `註冊時間: ${data.regTime}\n`;
+                t += `定位經緯度: ${data.lat}, ${data.lng}`;
+                if (data.azi) t += ` (方位:${data.azi})`;
+
+                const mapUrl = `https://www.google.com/maps?q=${data.lat},${data.lng}`;
+                const text = encodeURIComponent(t + '\n' + mapUrl);
+
+                if (type === 'line') window.open(`https://line.me/R/msg/text/?${text}`, '_blank');
+                else window.open(`https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(t)}`, '_blank');
+            }
+
+            // 新增：貼上功能 (改為 Promise 寫法以增加相容性)
+            function pasteInput() {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    navigator.clipboard.readText()
+                        .then(text => {
+                            document.getElementById('rawInput').value = text;
+                        })
+                        .catch(err => {
+                            alert('無法讀取剪貼簿，請手動貼上 (需允許瀏覽器權限)');
+                        });
                 } else {
-                    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(t)}`, '_blank');
+                    alert('您的瀏覽器不支援自動貼上，請長按輸入框手動貼上。');
                 }
+            }
+
+            // 新增：清空功能
+            function clearInput() {
+                document.getElementById('rawInput').value = '';
+                document.getElementById('rawInput').focus();
             }
 
             // 歷史紀錄管理
             function addHistory() {
-                if (history.length > 0) {
-                    const last = history[0];
-                    if (last.lat === data.lat && last.lng === data.lng && last.phone === data.phone && last.reqTime === data.reqTime) return;
-                }
+                const now = new Date().toLocaleString('zh-TW', { hour12: false });
+                // 避免重複存入完全相同的資料 (座標+電話+時間)
+                const isDup = history.some(h =>
+                    h.lat === data.lat &&
+                    h.lng === data.lng &&
+                    h.phone === data.phone &&
+                    h.reqTime === data.reqTime &&
+                    h.regTime === data.regTime
+                );
+                if (isDup) return;
+
                 history.unshift({
                     id: Date.now(),
-                    time: new Date().toLocaleString('zh-TW', { hour12: false }),
+                    time: now,
                     ...data
                 });
                 if (history.length > 50) history.pop();
@@ -606,7 +700,9 @@
             }
 
             function clearHistory() {
-                if (confirm('確定清空紀錄？')) { history = []; saveHistory(); }
+                if (confirm('確定清空紀錄？')) {
+                    history = []; saveHistory();
+                }
             }
 
             function saveHistory() {
@@ -616,20 +712,22 @@
 
             function renderHistory() {
                 const ul = document.getElementById('list'); ul.innerHTML = '';
-                if (!history.length) { ul.innerHTML = '<li style="text-align:center;padding:20px;color:#aaa;">暫無紀錄</li>'; return; }
+                if (!history.length) {
+                    ul.innerHTML = '<li style="text-align:center;padding:20px;color:#aaa;">暫無紀錄</li>'; return;
+                }
 
                 history.forEach(item => {
                     const li = document.createElement('li');
                     li.innerHTML = `
-                <div style="font-size:0.8rem;color:#999;margin-bottom:4px;">${item.time}</div>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                    <span style="font-weight:700;color:#2c3e50;font-size:1.05rem;">${item.lat}, ${item.lng}</span>
-                    ${item.phone ? `<span class="tag">${item.phone}</span>` : ''}
-                </div>
-                ${item.reqTime ? `<div style="font-size:0.85rem;color:#555;">🕒 ${item.reqTime}</div>` : ''}
-                ${item.azi ? `<div style="font-size:0.85rem;color:#d35400;">🧭 方位: ${item.azi}°</div>` : ''}
-                <i class="fa-solid fa-xmark del-icon" onclick="app.deleteItem(${item.id}, event)"></i>
-            `;
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:4px;">${item.time}</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <span style="font-weight:700;color:#2c3e50;font-size:1.05rem;">${item.lat}, ${item.lng}</span>
+                            ${item.phone ? `<span class="tag">${item.phone}</span>` : ''}
+                        </div>
+                        ${item.reqTime ? `<div style="font-size:0.85rem;color:#555;">🕒 ${item.reqTime}</div>` : ''}
+                        ${item.azi ? `<div style="font-size:0.85rem;color:#d35400;">🧭 方位: ${item.azi}°</div>` : ''}
+                        <i class="fa-solid fa-xmark del-icon" onclick="app.deleteItem(${item.id}, event)"></i>
+                    `;
                     li.onclick = () => {
                         data = { lat: item.lat, lng: item.lng, azi: item.azi, phone: item.phone, reqTime: item.reqTime, regTime: item.regTime };
                         syncUI(); updateMap(false);
@@ -642,14 +740,18 @@
             return {
                 init, // 明確暴露 init
                 parse, updateMap, openMap, copy, share,
-                clearHistory, deleteItem
+                clearHistory, deleteItem,
+                pasteInput, clearInput // 新增暴露
             };
         })();
 
         // 啟動
-        window.onload = app.init;
+        if (typeof app !== 'undefined') {
+            window.onload = app.init;
+        } else {
+            alert('嚴重錯誤：程式初始化失敗，請檢查瀏覽器控制台。');
+        }
     </script>
-
 </body>
 
 </html>
