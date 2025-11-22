@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>警用定位助手 (v16 終極修復版)</title>
+    <title>警用定位助手 (v50 門號關聯版)</title>
     
-    <!-- Google Fonts -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- Libraries -->
+    <!-- Font Awesome Icons (v6) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Leaflet Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
     <style>
         :root {
             --primary-color: #2c3e50;
-            --accent-color: #e67e22; /* 改為活潑的橘色強調操作 */
-            --success-color: #27ae60;
-            --bg-color: #f0f2f5;
+            --accent-color: #d35400;
+            --bg-color: #f4f6f7;
             --card-bg: #ffffff;
             --line-color: #06c755;
             --tg-color: #2481cc; 
             --copy-color: #8e44ad; 
+            --del-color: #c0392b;
         }
 
         body {
@@ -34,6 +34,7 @@
             background-color: var(--bg-color);
             color: #333;
             overscroll-behavior: none;
+            padding-bottom: 80px;
         }
 
         header {
@@ -41,7 +42,7 @@
             color: white;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -49,149 +50,218 @@
         header h1 { margin: 0; font-size: 1.5rem; font-weight: 700; }
         header small { display: block; margin-top: 5px; opacity: 0.9; font-size: 0.9rem; }
 
-        .container { padding: 20px; max-width: 850px; margin: 0 auto; padding-bottom: 100px; }
-        .card { background: var(--card-bg); border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
-
-        /* 拖曳區 */
-        .drop-zone {
-            border: 3px dashed #bdc3c7; border-radius: 12px; padding: 40px 20px; text-align: center;
-            cursor: pointer; position: relative; background: #fcfcfc; transition: all 0.3s;
+        .container { padding: 20px; max-width: 600px; margin: 0 auto; }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        .drop-zone:hover, .drop-zone.dragover { background: #fef9e7; border-color: var(--accent-color); transform: scale(1.01); }
-        .drop-zone input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-        .icon-large { font-size: 48px; display: block; margin-bottom: 10px; }
-        .paste-hint { display: inline-block; margin-top: 10px; padding: 5px 12px; background: #e8f6f3; color: #16a085; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
 
-        /* 進階控制區 */
-        .controls-area {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-            border: 1px solid #e0e0e0;
-        }
-        .control-group {
+        /* 輸入區塊 */
+        .input-group {
+            display: flex;
+            gap: 15px;
             margin-bottom: 15px;
         }
-        .control-label {
-            font-weight: 700; color: var(--primary-color); display: flex; justify-content: space-between; margin-bottom: 5px;
+        .input-wrapper {
+            flex: 1;
         }
-        .slider-container {
-            display: flex; align-items: center; gap: 10px;
+        .input-wrapper label {
+            display: block;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
         }
-        input[type="range"] {
-            flex: 1; cursor: pointer;
+        .coord-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-family: monospace;
+            box-sizing: border-box;
+            transition: 0.2s;
+            background: #fafafa;
         }
-        .checkbox-group {
-            display: flex; align-items: center; gap: 10px;
+        .coord-input:focus {
+            border-color: var(--accent-color);
+            background: #fff;
+            outline: none;
         }
-        .checkbox-group input { width: 18px; height: 18px; }
-
-        /* 預覽與文字框 */
-        #debug-preview { display: none; margin-top: 15px; text-align: center; background: #2c3e50; padding: 10px; border-radius: 8px; }
-        #debug-preview img { height: 80px; border: 1px solid #fff; background: white; object-fit: contain; }
-        .preview-title { color: #fff; font-size: 0.8rem; margin-bottom: 5px; display: block;}
-
-        textarea {
-            width: 100%; height: 100px; border: 2px solid #ecf0f1; border-radius: 10px; padding: 15px;
-            font-size: 16px; margin-top: 20px; font-family: 'Monaco', monospace; box-sizing: border-box; background: #fafafa;
+        /* 特別強調門號欄位 */
+        .phone-input {
+            border-color: #3498db;
+            color: #2980b9;
+            font-weight: bold;
         }
-        textarea:focus { outline: none; border-color: var(--accent-color); background: #fff; }
 
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        button { padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        button:active { transform: scale(0.97); }
-        .btn-action { background: var(--primary-color); color: white; }
-        .btn-clear { background: #ecf0f1; color: #555; }
+        /* 智慧貼上區 */
+        .smart-paste-area {
+            width: 100%;
+            height: 120px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            background: #fff;
+        }
+        .smart-paste-area:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            background: #fffaf0;
+        }
 
-        /* 勤務功能 */
-        .duty-actions { display: none; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 2px dashed #eee; }
-        @media (min-width: 500px) { .duty-actions { grid-template-columns: 1fr 1fr 1fr 1fr; } }
-        .btn-gmap { background: #4285f4; color: white; }
-        .btn-line { background: var(--line-green); color: white; }
-        .btn-tg { background: var(--tg-color); color: white; }
-        .btn-copy { background: var(--copy-color); color: white; }
+        .btn-paste {
+            background: var(--accent-color);
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 10px rgba(211, 84, 0, 0.2);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-paste:active { transform: scale(0.98); }
+        
+        /* 按鈕區 */
+        .duty-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #ddd;
+        }
+        button.action-btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button.action-btn:active { transform: scale(0.97); box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); }
+        button.action-btn i { font-size: 1.2rem; }
 
+        .btn-gmap { background: #4285f4; }
+        .btn-line { background: var(--line-color); }
+        .btn-tg { background: var(--tg-color); }
+        .btn-copy { background: var(--copy-color); }
+        
+        /* 歷史紀錄清除按鈕 */
+        .btn-clear-history {
+            background: #ecf0f1; color: #7f8c8d; border: none; border-radius: 6px;
+            padding: 8px 15px; font-size: 0.9rem; cursor: pointer; font-weight: bold;
+        }
+        .btn-clear-history:hover { background: #bdc3c7; color: #2c3e50; }
+
+
+        #map { height: 400px; width: 100%; border-radius: 16px; margin-top: 25px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
         /* 歷史紀錄 */
-        .history-section { margin-top: 30px; }
+        .history-section { margin-top: 40px; }
         .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-left: 5px solid var(--accent-color); padding-left: 12px; }
-        .history-title { font-size: 1.25rem; font-weight: 700; color: var(--primary-color); }
-        .history-item { background: white; border-radius: 10px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; position: relative; }
-        .history-coord { font-family: monospace; font-weight: 700; font-size: 1.1rem; color: var(--primary-color); }
-        .history-time { font-size: 0.85rem; color: #95a5a6; }
-        .history-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-sm { padding: 6px 12px; font-size: 0.9rem; border-radius: 5px; }
-        .btn-del { background: transparent; color: #e74c3c; position: absolute; top: 10px; right: 10px; font-size: 0.9rem; padding: 5px; box-shadow: none; }
+        .history-title { font-size: 1.2rem; font-weight: 700; color: var(--primary-color); }
+        .history-list { list-style: none; padding: 0; margin: 0; }
+        .history-item { 
+            background: white; border-radius: 12px; padding: 18px; margin-bottom: 12px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; position: relative; cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .history-item:active { background: #f9f9f9; }
+        .btn-del-item { 
+            position: absolute; top: 15px; right: 15px; 
+            background: none; border: none; color: var(--del-color); 
+            padding: 8px; font-size: 1.1rem; cursor: pointer; 
+        }
 
-        #map { height: 400px; width: 100%; border-radius: 12px; margin-top: 20px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        #status-bar { display: none; padding: 12px; background: #d4edda; color: #155724; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 500; }
-
-        /* 裁切 */
-        #cropModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10000; flex-direction: column; }
-        .crop-hint { background: #f39c12; color: #fff; padding: 15px; text-align: center; font-weight: 500; position: absolute; top: 0; width: 100%; z-index: 10001; }
-        .crop-container { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; padding: 60px 20px 90px 20px; }
-        .crop-controls { height: 80px; background: #1e272e; display: flex; justify-content: center; gap: 20px; align-items: center; position: absolute; bottom: 0; width: 100%; z-index: 10001; }
-        #imageToCrop { max-width: 100%; max-height: 100%; }
-        .btn-confirm { background: var(--success-color); color: white; width: 150px; }
-        .btn-cancel { background: #555; color: white; width: 100px; }
+        .hint { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 8px; text-align: center; font-weight: 500; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>👮‍♂️ 警察小幫手 v16</h1>
-    <small>補字修復 | 自動轉黑白 | 抗摩爾紋</small>
+    <h1>👮‍♂️ 警察小幫手 v50</h1>
+    <small>門號辨識 | 座標直打 | 勤務整合</small>
 </header>
 
 <div class="container">
-    <div id="status-bar">系統準備就緒</div>
 
     <div class="card">
-        <div class="drop-zone" id="dropZone">
-            <span class="icon-large">📷</span>
-            <div style="font-size:1.1rem; font-weight:500;">點擊、拖曳，或 Ctrl+V 貼上</div>
-            <span class="paste-hint">💡 專門處理螢幕翻拍、字體破碎</span>
-            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)">
-        </div>
+        <div class="hint">👇 請貼上整段文字，系統自動抓取門號與座標</div>
+        <textarea id="rawInput" class="smart-paste-area" placeholder="例如：
+定位請求的時間：2025/11/21...
+行動電話：0912345678
+經度：120.56683
+緯度：23.96277
 
-        <!-- 進階影像控制 -->
-        <div class="controls-area">
-            <div class="control-group">
-                <div class="control-label">
-                    <span>🔧 補字強度 (連通斷裂筆畫)</span>
-                    <span id="thickVal" style="color:var(--accent-color)">2</span>
-                </div>
-                <div class="slider-container">
-                    <input type="range" id="thickenRange" min="0" max="5" step="1" value="2" oninput="updatePreview()">
-                </div>
-                <div style="font-size:0.8rem; color:#666; margin-top:5px;">
-                    數字越碎，強度調越高。調太高可能會糊在一起。
-                </div>
-            </div>
-            
-            <div class="checkbox-group">
-                <input type="checkbox" id="autoInvert" checked onchange="updatePreview()">
-                <label for="autoInvert" style="font-weight:500;">自動轉為「白底黑字」 (推薦開啟)</label>
+(直接 Ctrl+V 貼上整段即可)"></textarea>
+        
+        <button class="btn-paste" onclick="smartParse()">
+            <i class="fa-solid fa-bolt"></i> 解析並定位
+        </button>
+
+        <div style="border-top: 1px solid #eee; margin: 25px 0;"></div>
+
+        <!-- 新增：定位門號欄位 -->
+        <div class="input-group">
+            <div class="input-wrapper">
+                <label><i class="fa-solid fa-mobile-screen"></i> 定位門號 (Phone)</label>
+                <input type="text" id="phoneInput" class="coord-input phone-input" placeholder="09xxxxxxxx" onchange="updateHistoryOnly()">
             </div>
         </div>
 
-        <div id="debug-preview">
-            <span class="preview-title">▼ 機器將讀取這張「修復後」的影像</span>
-            <img id="processedImg" src="" />
-        </div>
-        
-        <textarea id="inputText" placeholder="OCR 辨識結果..."></textarea>
-        
-        <div class="btn-group">
-            <button class="btn-clear" onclick="resetAll()">🔄 清空</button>
-            <button class="btn-action" onclick="runOCRFromPreview()">🔍 開始解析</button>
+        <div class="input-group">
+            <div class="input-wrapper">
+                <label>緯度 (Lat)</label>
+                <input type="number" id="latInput" class="coord-input" placeholder="23.xxxxx" step="any" onchange="updateMapOnly()">
+            </div>
+            <div class="input-wrapper">
+                <label>經度 (Lng)</label>
+                <input type="number" id="lngInput" class="coord-input" placeholder="120.xxxxx" step="any" onchange="updateMapOnly()">
+            </div>
         </div>
 
-        <div class="duty-actions" id="dutyActions">
-            <button class="btn-gmap" onclick="openGoogleMaps()">🌏 地圖</button>
-            <button class="btn-copy" id="btnCopy" onclick="copyToClipboard()">📋 複製</button>
-            <button class="btn-tg" onclick="shareToTelegram()">✈️ TG</button>
-            <button class="btn-line" onclick="shareToLine()">💬 LINE</button>
+        <div class="input-group">
+            <div class="input-wrapper">
+                <label>方位角 (Azimuth) <span style="font-weight:normal;color:#999;font-size:0.8rem;">(選填)</span></label>
+                <input type="number" id="azimuthInput" class="coord-input" placeholder="例如: 180" min="0" max="360" onchange="updateMapOnly()">
+            </div>
+        </div>
+
+        <div class="duty-actions">
+            <button class="action-btn btn-gmap" onclick="openGoogleMaps()">
+                <i class="fa-solid fa-map-location-dot"></i> Google 地圖
+            </button>
+            <button class="action-btn btn-copy" onclick="copyToClipboard()">
+                <i class="fa-solid fa-clipboard"></i> 複製訊息
+            </button>
+            <button class="action-btn btn-tg" onclick="shareToTelegram()">
+                <i class="fa-brands fa-telegram"></i> TG 分享
+            </button>
+            <button class="action-btn btn-line" onclick="shareToLine()">
+                <i class="fa-brands fa-line"></i> LINE 分享
+            </button>
         </div>
     </div>
 
@@ -200,370 +270,305 @@
     <div class="history-section">
         <div class="history-header">
             <div class="history-title">📁 歷史紀錄</div>
-            <button class="btn-sm btn-clear" onclick="clearHistory()">🗑️ 清除</button>
+            <button class="action-btn btn-clear-history" onclick="clearHistory()">
+                <i class="fa-solid fa-trash-can"></i> 清除全部
+            </button>
         </div>
         <ul class="history-list" id="historyList"></ul>
     </div>
 </div>
 
-<div id="cropModal">
-    <div class="crop-hint">💡 訣竅：請盡量「只框選數字」，避開中文與雜訊！</div>
-    <div class="crop-container">
-        <img id="imageToCrop" src="" alt="Source Image">
-    </div>
-    <div class="crop-controls">
-        <button class="btn-cancel" onclick="closeCropModal()">取消</button>
-        <button class="btn-confirm" onclick="confirmCrop()">✂️ 確認裁切</button>
-    </div>
-</div>
-
 <script>
     let map, marker, sectorLayer;
-    let cropper;
-    let currentLat = null, currentLng = null;
-    let currentCellInfo = "";
+    let currentLat = null, currentLng = null, currentAzimuth = null, currentPhone = "";
     let historyData = [];
-    let currentCanvas = null; // 暫存裁切後的原始 canvas
 
     window.onload = () => loadHistory();
 
-    // --- 檔案處理 ---
-    const dropZone = document.getElementById('dropZone');
-    window.addEventListener('paste', e => {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) { processFile(items[i].getAsFile()); e.preventDefault(); break; }
-        }
-    });
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false));
-    ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('dragover'), false));
-    ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('dragover'), false));
-    dropZone.addEventListener('drop', e => { if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]); }, false);
-    function handleFileSelect(input) { if (input.files.length) processFile(input.files[0]); input.value = ''; }
-    function processFile(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => openCropModal(e.target.result);
-        reader.readAsDataURL(file);
-    }
+    // --- 核心功能：智慧解析 ---
+    function smartParse() {
+        const text = document.getElementById('rawInput').value;
+        const latInput = document.getElementById('latInput');
+        const lngInput = document.getElementById('lngInput');
+        const aziInput = document.getElementById('azimuthInput');
+        const phoneInput = document.getElementById('phoneInput');
 
-    // --- 裁切 ---
-    function openCropModal(src) {
-        const modal = document.getElementById('cropModal');
-        const img = document.getElementById('imageToCrop');
-        img.src = src;
-        modal.style.display = 'flex';
-        if (cropper) cropper.destroy();
-        setTimeout(() => {
-            cropper = new Cropper(img, {
-                viewMode: 1, dragMode: 'move', autoCropArea: 0.6,
-                restore: false, guides: true, center: true, highlight: false,
-                cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false,
-            });
-        }, 100);
-    }
-    function closeCropModal() { document.getElementById('cropModal').style.display = 'none'; if (cropper) cropper.destroy(); }
-    
-    function confirmCrop() {
-        if (!cropper) return;
-        currentCanvas = cropper.getCroppedCanvas();
-        closeCropModal();
+        // 1. 抓座標 (浮點數)
+        const numbers = text.match(/[0-9]+(?:\.[0-9]+)/g);
         
-        // 統一尺寸
-        if (currentCanvas.width < 800) {
-            const scale = 800 / currentCanvas.width;
-            const newC = document.createElement('canvas');
-            newC.width = 800; newC.height = currentCanvas.height * scale;
-            const ctx = newC.getContext('2d');
-            ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(currentCanvas, 0, 0, newC.width, newC.height);
-            currentCanvas = newC;
-        }
+        // 2. 抓方位角
+        const aziMatch = text.match(/(?:方位角|方向|Dir|Azimuth)[^0-9\n]*([0-9]+(?:\.[0-9]+)?)/i);
+        let foundAzi = aziMatch ? parseFloat(aziMatch[1]) : null;
 
-        updatePreview(); // 立即執行一次預覽
-    }
-
-    // --- 即時預覽與影像處理 ---
-    function updatePreview() {
-        if (!currentCanvas) return;
-        document.getElementById('thickVal').innerText = document.getElementById('thickenRange').value;
-        
-        // 複製一份 canvas 來處理，不影響原始檔
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = currentCanvas.width;
-        tempCanvas.height = currentCanvas.height;
-        const ctx = tempCanvas.getContext('2d');
-        ctx.drawImage(currentCanvas, 0, 0);
-
-        const thickness = parseInt(document.getElementById('thickenRange').value);
-        const autoInvert = document.getElementById('autoInvert').checked;
-
-        preprocessImage(tempCanvas, thickness, autoInvert);
-        
-        document.getElementById('debug-preview').style.display = 'block';
-        document.getElementById('processedImg').src = tempCanvas.toDataURL();
-    }
-
-    // 核心影像處理 (v16 升級版)
-    function preprocessImage(canvas, thickness, autoInvert) {
-        const ctx = canvas.getContext('2d');
-        let idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let d = idata.data;
-        
-        // 1. 灰階化與亮度計算
-        let totalBrightness = 0;
-        for (let i = 0; i < d.length; i += 4) {
-            const avg = (0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
-            d[i] = d[i+1] = d[i+2] = avg;
-            totalBrightness += avg;
-        }
-        
-        // 2. 智慧反相 (如果是黑底白字，轉成白底黑字)
-        // 計算平均亮度 (0-255)
-        const avgBrightness = totalBrightness / (d.length / 4);
-        let isInverted = false;
-        
-        if (autoInvert && avgBrightness < 100) { // 畫面偏暗，極可能是黑底白字
-            for (let i = 0; i < d.length; i += 4) {
-                d[i] = 255 - d[i];
-                d[i+1] = 255 - d[i+1];
-                d[i+2] = 255 - d[i+2];
-            }
-            isInverted = true;
-        }
-
-        // 3. 二值化 (讓背景全白，文字全黑)
-        // 使用簡單閾值，但為了保留文字細節，不宜切太死
-        const threshold = 180; 
-        for (let i = 0; i < d.length; i += 4) {
-            // 如果是白底黑字，文字應該是暗的
-            const v = d[i] < threshold ? 0 : 255;
-            d[i] = d[i+1] = d[i+2] = v;
-        }
-        
-        ctx.putImageData(idata, 0, 0);
-
-        // 4. 形態學膨脹 (補斷字) - 關鍵步驟
-        // 因為現在是白底黑字(0)，我們要「腐蝕」白色背景，等於「膨脹」黑色文字
-        if (thickness > 0) {
-            performErosion(canvas, thickness); // 對黑色區域進行擴張
-        }
-    }
-
-    // 簡單的腐蝕演算法 (最小值濾波) -> 用於加粗黑色文字
-    function performErosion(canvas, radius) {
-        if (radius === 0) return;
-        const ctx = canvas.getContext('2d');
-        const w = canvas.width;
-        const h = canvas.height;
-        const srcData = ctx.getImageData(0, 0, w, h);
-        const dstData = ctx.createImageData(w, h);
-        const src = srcData.data;
-        const dst = dstData.data;
-
-        // 只做水平與垂直方向的擴張，效率較高且適合數字
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                let minVal = 255;
-                
-                // 搜尋周圍鄰居
-                for (let ky = -radius; ky <= radius; ky++) {
-                    for (let kx = -radius; kx <= radius; kx++) {
-                        const ny = y + ky;
-                        const nx = x + kx;
-                        if (ny >= 0 && ny < h && nx >= 0 && nx < w) {
-                            const idx = (ny * w + nx) * 4;
-                            // 取紅色通道即可(因為已是灰階)
-                            const val = src[idx]; 
-                            if (val < minVal) minVal = val;
-                        }
-                    }
-                }
-                
-                const dstIdx = (y * w + x) * 4;
-                dst[dstIdx] = dst[dstIdx+1] = dst[dstIdx+2] = minVal;
-                dst[dstIdx+3] = 255;
+        // 3. 抓手機號碼 (新增功能)
+        // 邏輯：抓取 09xxxxxxxx (10碼) 或 8869xxxxxxxx (12碼)
+        // 排除包含小數點的數字 (避免抓到座標)
+        const phoneMatch = text.match(/(?:[^0-9\.]|^)(09\d{8}|8869\d{8})(?:[^0-9\.]|$)/);
+        let foundPhone = "";
+        if (phoneMatch) {
+            foundPhone = phoneMatch[1];
+            // 如果是 886 開頭，轉成 09
+            if (foundPhone.startsWith("886")) {
+                foundPhone = "0" + foundPhone.substring(3);
             }
         }
-        ctx.putImageData(dstData, 0, 0);
-    }
 
-    // --- 執行 OCR (從預覽圖) ---
-    function runOCRFromPreview() {
-        const img = document.getElementById('processedImg');
-        if (!img.src || img.src === window.location.href) {
-            alert("請先選擇圖片並裁切！");
+        if (!numbers || numbers.length < 2) {
+            if(latInput.value && lngInput.value) {
+                // 即使沒抓到新座標，如果有手動輸入的，嘗試更新並帶入新抓到的電話
+                if(foundPhone) phoneInput.value = foundPhone;
+                updateLocation(parseFloat(latInput.value), parseFloat(lngInput.value), aziInput.value ? parseFloat(aziInput.value) : null, foundPhone || phoneInput.value);
+            } else {
+                alert("⚠️ 找不到有效的經緯度數字，請手動輸入。");
+            }
             return;
         }
 
-        const bar = document.getElementById('status-bar');
-        bar.style.display = 'block'; bar.innerText = '⏳ 正在辨識中...';
-        bar.style.background = '#d6eaf8'; bar.style.color = '#2980b9';
-        
-        Tesseract.recognize(img.src, 'eng+chi_tra').then(({ data: { text } }) => {
-            bar.innerText = '✅ 辨識完成，解析中...';
-            bar.style.background = '#d4edda'; bar.style.color = '#155724';
-            let clean = text.replace(/O/g, '0').replace(/o/g, '0').replace(/l/g, '1').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/\|/g, '1');
-            document.getElementById('inputText').value = clean;
-            parseText();
-        }).catch(err => {
-            bar.innerText = '❌ 辨識失敗'; bar.style.background = '#f8d7da'; bar.style.color = '#721c24';
-        });
-    }
+        let foundLat = null;
+        let foundLng = null;
 
-    // --- 解析與其他功能 (保持 v15) ---
-    function parseText() {
-        const text = document.getElementById('inputText').value;
-        const bar = document.getElementById('status-bar');
-        currentLat = null; currentLng = null; currentCellInfo = "";
+        // 智慧分類
+        for (let numStr of numbers) {
+            let val = parseFloat(numStr);
+            if (val >= 21 && val <= 27) foundLat = val;
+            if (val >= 118 && val <= 124) foundLng = val;
+        }
 
-        const tokens = text.match(/[0-9]+(?:\.[0-9]+)?/g);
-        let latList = [], lngList = [];
-
-        if (tokens) {
-            for (let i = 0; i < tokens.length; i++) {
-                checkCandidate(tokens[i], latList, lngList);
-                if (i < tokens.length - 1) checkCandidate(tokens[i] + "." + tokens[i+1], latList, lngList);
+        if (foundLat && foundLng) {
+            latInput.value = foundLat;
+            lngInput.value = foundLng;
+            if(foundAzi !== null) aziInput.value = foundAzi;
+            if(foundPhone) phoneInput.value = foundPhone;
+            
+            updateLocation(foundLat, foundLng, foundAzi, foundPhone);
+        } else {
+            alert("⚠️ 數字範圍不符合台灣座標，請手動確認。");
+            if(numbers.length >= 2) {
+                 latInput.value = numbers[0];
+                 lngInput.value = numbers[1];
             }
         }
+    }
 
-        if (latList.length) currentLat = latList.sort((a,b) => b.toString().length - a.toString().length)[0];
-        if (lngList.length) currentLng = lngList.sort((a,b) => b.toString().length - a.toString().length)[0];
-
-        const dirM = text.match(/(?:方向角|Dir|AntennaDir|Azimuth)[^0-9\n]*([0-9]+(?:\.[0-9]+)?)/i);
-        const cellM = text.match(/(?:CellID|CID|基站|編號)[^0-9\n]*([0-9]+)/i);
-        let dir = dirM ? parseFloat(dirM[1]) : null;
-        let cellId = cellM ? cellM[1] : null;
-
-        if(cellId) currentCellInfo += `基站:${cellId} `;
-        if(dir !== null) currentCellInfo += `方向:${dir}° `;
-
-        if (currentLat && currentLng) {
-            bar.innerText = `✅ 定位成功: ${currentLat}, ${currentLng}`;
-            bar.style.background = '#d4edda'; bar.style.color = '#155724';
-            showMap(currentLat, currentLng, dir, cellId);
-            document.getElementById('dutyActions').style.display = 'grid';
-            addToHistory(currentLat, currentLng, cellId, dir);
-        } else {
-            bar.innerText = '⚠️ 解析失敗，請調整「補字強度」後重試';
-            bar.style.background = '#fff3cd'; bar.style.color = '#856404';
+    // 當使用者手動修改欄位時觸發
+    function updateMapOnly() {
+        const lat = parseFloat(document.getElementById('latInput').value);
+        const lng = parseFloat(document.getElementById('lngInput').value);
+        const azi = document.getElementById('azimuthInput').value ? parseFloat(document.getElementById('azimuthInput').value) : null;
+        const phone = document.getElementById('phoneInput').value;
+        
+        if(!isNaN(lat) && !isNaN(lng)) {
+            updateLocation(lat, lng, azi, phone, false); // false = 不存歷史
+        }
+    }
+    
+    // 僅更新歷史紀錄 (當修改電話號碼時)
+    function updateHistoryOnly() {
+        const lat = parseFloat(document.getElementById('latInput').value);
+        const lng = parseFloat(document.getElementById('lngInput').value);
+        const azi = document.getElementById('azimuthInput').value ? parseFloat(document.getElementById('azimuthInput').value) : null;
+        const phone = document.getElementById('phoneInput').value;
+        
+        currentPhone = phone; // 更新全域變數
+        if(!isNaN(lat) && !isNaN(lng)) {
+             // 若座標存在，視為一次新的查詢意圖，存入歷史
+             addToHistory(lat, lng, azi, phone);
         }
     }
 
-    function checkCandidate(str, latList, lngList) {
-        let raw = parseFloat(str.replace(/\./g, ""));
-        if (isNaN(raw)) return;
-        let lat = tryFit(raw, 21, 27);
-        if (!lat && parseFloat(str) >= 21 && parseFloat(str) <= 27) lat = parseFloat(str);
-        if (lat) latList.push(lat);
-        let lng = tryFit(raw, 118, 124);
-        if (!lng && parseFloat(str) >= 118 && parseFloat(str) <= 124) lng = parseFloat(str);
-        if (lng) lngList.push(lng);
+    function updateLocation(lat, lng, azi, phone, saveHistory = true) {
+        currentLat = lat;
+        currentLng = lng;
+        currentAzimuth = azi;
+        currentPhone = phone || ""; // 確保不為 undefined
+        
+        showMap(lat, lng, azi);
+        
+        if(saveHistory) addToHistory(lat, lng, azi, currentPhone);
+        
+        document.getElementById('map').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function tryFit(num, min, max) {
-        let t = num;
-        if (t >= min && t <= max) return t;
-        while (t > max) t /= 10;
-        if (t >= min) return t;
-        return null;
-    }
-
-    function showMap(lat, lng, dir, cellId) {
+    // --- 地圖顯示 ---
+    function showMap(lat, lng, azi) {
         const mapDiv = document.getElementById('map');
         mapDiv.style.display = 'block';
+        
         if (!map) {
             map = L.map('map').setView([lat, lng], 16);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
         } else {
             map.setView([lat, lng], 16);
             map.invalidateSize();
         }
+
         if (marker) map.removeLayer(marker);
         if (sectorLayer) map.removeLayer(sectorLayer);
 
-        let popMsg = `<b>🎯 定位點</b><br>Lat: ${lat}<br>Lng: ${lng}`;
-        if (cellId) popMsg += `<br>CID: ${cellId}`;
-        marker = L.marker([lat, lng]).addTo(map).bindPopup(popMsg).openPopup();
+        let popupContent = `<b>📍 定位點</b><br>${lat}, ${lng}`;
+        if (currentPhone) popupContent += `<br>📞 門號: ${currentPhone}`;
+        if (azi !== null) popupContent += `<br>🧭 方位角: ${azi}°`;
 
-        if (dir !== null) drawSector(lat, lng, dir);
-        else sectorLayer = L.circle([lat, lng], { radius: 300, color: '#3498db', fillOpacity: 0.2 }).addTo(map);
-        mapDiv.scrollIntoView({ behavior: 'smooth' });
+        marker = L.marker([lat, lng]).addTo(map)
+            .bindPopup(popupContent)
+            .openPopup();
+
+        if (azi !== null && !isNaN(azi)) {
+            drawSector(lat, lng, azi);
+        } else {
+            sectorLayer = L.circle([lat, lng], {
+                radius: 200, color: '#3498db', fillColor: '#3498db', fillOpacity: 0.2
+            }).addTo(map);
+        }
     }
 
     function drawSector(lat, lng, angle) {
-        const r = 500; const spread = 60;
-        const start = (90 - (angle - spread/2)) * (Math.PI/180);
-        const end = (90 - (angle + spread/2)) * (Math.PI/180);
-        let pts = [[lat, lng]];
-        for(let i=0; i<=15; i++) {
-            let a = start - (i/15)*(start-end);
-            let dLat = (r/111000) * Math.sin(a);
-            let dLng = (r/(111000*Math.cos(lat*Math.PI/180))) * Math.cos(a);
-            pts.push([lat+dLat, lng+dLng]);
+        const radius = 500; 
+        const spread = 60; 
+        const startAngle = (90 - (angle - spread/2)) * (Math.PI / 180);
+        const endAngle = (90 - (angle + spread/2)) * (Math.PI / 180);
+        
+        let points = [[lat, lng]];
+        const steps = 15;
+        
+        for (let i = 0; i <= steps; i++) {
+            let currentRad = startAngle - (i / steps) * (startAngle - endAngle);
+            let dLat = (radius / 111000) * Math.sin(currentRad);
+            let dLng = (radius / (111000 * Math.cos(lat * Math.PI / 180))) * Math.cos(currentRad);
+            points.push([lat + dLat, lng + dLng]);
         }
-        pts.push([lat, lng]);
-        sectorLayer = L.polygon(pts, { color:'red', fillColor:'#e74c3c', fillOpacity:0.4, weight:1 }).addTo(map);
+        points.push([lat, lng]);
+
+        sectorLayer = L.polygon(points, {
+            color: '#d35400', fillColor: '#e67e22', fillOpacity: 0.4, weight: 2
+        }).addTo(map);
     }
 
-    function openGoogleMaps() { if (currentLat && currentLng) window.open(`https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`, '_blank'); }
+    // --- 分享功能 ---
+    function openGoogleMaps() {
+        if (checkCoord()) {
+            window.open(`https://www.google.com/maps?q=${currentLat},${currentLng}`, '_blank');
+        }
+    }
     function shareToLine() {
-        if (!currentLat || !currentLng) return;
-        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
-        let text = `🚨 [警用定位通報]\n座標: ${currentLat}, ${currentLng}\n${currentCellInfo}\n地圖: ${mapUrl}`;
-        window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
+        if (checkCoord()) {
+            let text = `🚨 [定位通報]\n`;
+            if(currentPhone) text += `門號: ${currentPhone}\n`;
+            text += `座標: ${currentLat}, ${currentLng}`;
+            if(currentAzimuth) text += `\n方位: ${currentAzimuth}°`;
+            text += `\n地圖: https://www.google.com/maps?q=${currentLat},${currentLng}`;
+            window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
+        }
     }
     function shareToTelegram() {
-        if (!currentLat || !currentLng) return;
-        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
-        let text = `🚨 [警用定位通報]\n座標: ${currentLat}, ${currentLng}\n${currentCellInfo}`;
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(text)}`, '_blank');
-    }
-    function copyToClipboard() {
-        if (!currentLat || !currentLng) return;
-        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
-        const fullText = `【定位通報】\n時間: ${new Date().toLocaleString('zh-TW',{hour12:false})}\n座標: ${currentLat}, ${currentLng}\n${currentCellInfo}\n地圖: ${mapUrl}`;
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(fullText).then(() => showCopySuccess());
-        } else {
-            const ta = document.createElement("textarea"); ta.value = fullText; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showCopySuccess();
+        if (checkCoord()) {
+            const url = `https://www.google.com/maps?q=${currentLat},${currentLng}`;
+            let text = `定位: ${currentLat}, ${currentLng}`;
+            if(currentPhone) text += ` (${currentPhone})`;
+            if(currentAzimuth) text += ` 方位:${currentAzimuth}`;
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
         }
     }
-    function showCopySuccess() {
-        const btn = document.getElementById('btnCopy'); const old = btn.innerHTML;
-        btn.innerHTML = '✅ 已複製！'; btn.style.background = '#27ae60';
-        setTimeout(() => { btn.innerHTML = old; btn.style.background = ''; }, 1500);
+    function copyToClipboard() {
+        if (checkCoord()) {
+            let text = `時間: ${new Date().toLocaleString()}\n`;
+            if(currentPhone) text += `門號: ${currentPhone}\n`;
+            text += `座標: ${currentLat}, ${currentLng}`;
+            if(currentAzimuth) text += `\n方位: ${currentAzimuth}°`;
+            text += `\nhttps://www.google.com/maps?q=${currentLat},${currentLng}`;
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => alert("✅ 已複製到剪貼簿！"));
+            } else {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                alert("✅ 已複製！");
+            }
+        }
+    }
+    function checkCoord() {
+        if (!currentLat || !currentLng) { alert("請先輸入或貼上座標！"); return false; }
+        return true;
     }
 
+    // --- 歷史紀錄 ---
     function loadHistory() {
-        const stored = localStorage.getItem('police_locate_history');
-        if (stored) historyData = JSON.parse(stored);
+        const h = localStorage.getItem('police_locate_history_v50');
+        if(h) historyData = JSON.parse(h);
         renderHistory();
     }
-    function addToHistory(lat, lng, cid, dir) {
-        if (historyData.length > 0 && historyData[0].lat === lat && historyData[0].lng === lng) return;
-        const item = { id: Date.now(), time: new Date().toLocaleString('zh-TW',{hour12:false}), lat, lng, cellId: cid||'無', dir: dir||'無' };
-        historyData.unshift(item); if (historyData.length > 50) historyData.pop();
-        localStorage.setItem('police_locate_history', JSON.stringify(historyData));
+    function addToHistory(lat, lng, azi, phone) {
+        // 避免重複 (檢查座標與門號是否完全相同)
+        if(historyData.length > 0) {
+            const last = historyData[0];
+            if (last.lat === lat && last.lng === lng && last.phone === phone) return;
+        }
+        
+        const item = { 
+            id: Date.now(), 
+            time: new Date().toLocaleString('zh-TW', {hour12:false}), 
+            lat, lng, 
+            azi: azi || '-',
+            phone: phone || ''
+        };
+        historyData.unshift(item);
+        if(historyData.length > 50) historyData.pop();
+        localStorage.setItem('police_locate_history_v50', JSON.stringify(historyData));
         renderHistory();
     }
     function renderHistory() {
-        const list = document.getElementById('historyList'); list.innerHTML = '';
-        if (!historyData.length) { list.innerHTML = '<li style="text-align:center;padding:20px;color:#aaa;">無紀錄</li>'; return; }
+        const list = document.getElementById('historyList');
+        list.innerHTML = "";
+        if(historyData.length === 0) {
+            list.innerHTML = "<li style='text-align:center;padding:20px;color:#999;'>尚無紀錄</li>";
+            return;
+        }
         historyData.forEach(item => {
-            const li = document.createElement('li'); li.className = 'history-item';
-            li.innerHTML = `<button class="btn-del" onclick="deleteHistory(${item.id})">✕</button><div class="history-time">${item.time}</div><div class="history-coord">${item.lat}, ${item.lng}</div><div style="font-size:0.9rem;color:#777;">CID: ${item.cellId} | Dir: ${item.dir}°</div><div class="history-actions"><button class="btn-sm btn-gmap" onclick="openHistoryMap(${item.lat}, ${item.lng})">地圖</button></div>`; 
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            li.innerHTML = `
+                <div>
+                    <div style="font-size:0.85rem;color:#95a5a6;margin-bottom:4px;">${item.time}</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight:700;color:#2c3e50;font-size:1.1rem;">${item.lat}, ${item.lng}</span>
+                        ${item.phone ? `<span style="font-size:0.9rem;background:#e3f2fd;color:#2980b9;padding:2px 6px;border-radius:4px;">${item.phone}</span>` : ''}
+                    </div>
+                    ${item.azi !== '-' ? `<div style="font-size:0.9rem;color:#d35400;margin-top:4px;"><i class="fa-regular fa-compass"></i> 方位: ${item.azi}°</div>` : ''}
+                </div>
+                <button class="btn-del-item" onclick="deleteHistory(${item.id}, event)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            li.onclick = () => {
+                document.getElementById('latInput').value = item.lat;
+                document.getElementById('lngInput').value = item.lng;
+                document.getElementById('azimuthInput').value = (item.azi !== '-') ? item.azi : '';
+                document.getElementById('phoneInput').value = item.phone || '';
+                updateLocation(item.lat, item.lng, (item.azi !== '-') ? item.azi : null, item.phone, false);
+            };
             list.appendChild(li);
         });
     }
-    function deleteHistory(id) { historyData = historyData.filter(i => i.id !== id); localStorage.setItem('police_locate_history', JSON.stringify(historyData)); renderHistory(); }
-    function clearHistory() { if(confirm("清空紀錄?")) { historyData = []; localStorage.removeItem('police_locate_history'); renderHistory(); } }
-    function openHistoryMap(lat, lng) { window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank'); }
-    function resetAll() {
-        document.getElementById('inputText').value = ''; document.getElementById('debug-preview').style.display = 'none';
-        document.getElementById('dutyActions').style.display = 'none'; document.getElementById('fileInput').value = '';
-        document.getElementById('status-bar').style.display = 'none'; if(marker) map.removeLayer(marker); if(sectorLayer) map.removeLayer(sectorLayer); document.getElementById('map').style.display = 'none'; window.scrollTo({top:0, behavior:'smooth'});
-        currentCanvas = null;
+    window.deleteHistory = function(id, e) {
+        e.stopPropagation();
+        historyData = historyData.filter(i => i.id !== id);
+        localStorage.setItem('police_locate_history_v50', JSON.stringify(historyData));
+        renderHistory();
     }
+    window.clearHistory = function() {
+        if(confirm("確定清除所有紀錄？")) {
+            historyData = [];
+            localStorage.removeItem('police_locate_history_v50');
+            renderHistory();
+        }
+    }
+
 </script>
 
 </body>
