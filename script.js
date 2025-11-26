@@ -220,13 +220,25 @@ const app = (function () {
         const t = getFullText();
         const mapUrl = `https://www.google.com/maps?q=${data.lat},${data.lng}`; // 用於 Telegram 按鈕連結
 
+        let url = '';
         // LINE: 傳送完整文字
         if (type === 'line') {
-            window.open(`https://line.me/R/msg/text/?${encodeURIComponent(t)}`, '_blank');
+            url = `https://line.me/R/msg/text/?${encodeURIComponent(t)}`;
         }
         // Telegram: url 參數放地圖連結，text 放完整資訊
         else {
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(t)}`, '_blank');
+            url = `https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(t)}`;
+        }
+
+        // 檢測是否為行動裝置
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            // 手機版：直接導向，避免開新分頁導致的空白頁問題
+            window.location.href = url;
+        } else {
+            // 電腦版：開新分頁
+            window.open(url, '_blank');
         }
     }
 
