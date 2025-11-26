@@ -1,0 +1,312 @@
+/* 核心樣式：簡潔、專業、防誤觸 */
+:root {
+    --primary: #2c3e50;
+    --accent: #d35400;
+    --bg: #f4f6f7;
+    --line: #06c755;
+    --tg: #2481cc;
+    --copy: #8e44ad;
+    --del: #c0392b;
+    --white: #ffffff;
+    --gray: #e0e0e0;
+    --text: #333;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 80px;
+    overflow-x: hidden;
+    user-select: none;
+    /* 防止長按選取文字 */
+}
+
+/* 防止 iOS 橡皮筋效果 */
+html,
+body {
+    height: 100%;
+    overscroll-behavior-y: none;
+}
+
+header {
+    background: linear-gradient(135deg, var(--primary), #34495e);
+    color: var(--white);
+    padding: 20px 15px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+small {
+    display: block;
+    margin-top: 5px;
+    opacity: 0.8;
+    font-size: 0.8rem;
+}
+
+.container {
+    padding: 15px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* 輸入控制項 */
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.input-wrapper {
+    flex: 1;
+}
+
+label {
+    display: block;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+}
+
+input,
+textarea {
+    width: 100%;
+    border: 2px solid var(--gray);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1rem;
+    font-family: monospace;
+    transition: 0.2s;
+    background: #fafafa;
+    appearance: none;
+    /* 移除原生樣式 */
+}
+
+input:focus,
+textarea:focus {
+    border-color: var(--accent);
+    background: var(--white);
+    outline: none;
+}
+
+.phone-input {
+    border-color: #3498db;
+    color: #2980b9;
+    font-weight: bold;
+}
+
+.smart-area {
+    height: 100px;
+    border-style: dashed;
+    border-color: #bdc3c7;
+}
+
+/* 按鈕系統 */
+.btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--white);
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+.btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}
+
+.btn-main {
+    background: var(--accent);
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(211, 84, 0, 0.2);
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #ddd;
+}
+
+.btn-map {
+    background: #4285f4;
+}
+
+.btn-copy {
+    background: var(--copy);
+}
+
+.btn-tg {
+    background: var(--tg);
+}
+
+.btn-line {
+    background: var(--line);
+}
+
+/* 地圖 */
+#map {
+    height: 350px;
+    width: 100%;
+    border-radius: 16px;
+    margin-top: 20px;
+    display: none;
+    z-index: 1;
+}
+
+/* 歷史紀錄 */
+.history-sec {
+    margin-top: 30px;
+}
+
+.hist-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-left: 10px;
+    border-left: 4px solid var(--accent);
+}
+
+.hist-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--primary);
+}
+
+.btn-clear {
+    background: #eee;
+    color: #666;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    border: none;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    border: 1px solid #eee;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    /* 禁止選取文字以免誤觸 */
+}
+
+li:active {
+    background: #f8f9fa;
+    border-color: var(--accent);
+}
+
+.del-icon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    color: var(--del);
+    padding: 5px;
+}
+
+.hint {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.tag {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #e3f2fd;
+    color: #2980b9;
+    }
+
+/* 版權浮水印 */
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.75rem;
+    color: #bdc3c7;
+}
+
+/* 電腦版雙欄佈局 */
+@media (min-width: 1024px) {
+    .container {
+        max-width: 1200px;
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        align-items: start;
+    }
+
+    .main-content {
+        min-width: 0;
+        /* 防止 grid item 溢出 */
+    }
+
+    .history-sec {
+        margin-top: 0;
+        background: var(--white);
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 90px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+    }
+
+    .hist-head {
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    /* 調整歷史紀錄列表樣式以適應側邊欄 */
+    .history-sec li {
+        padding: 12px;
+    }
+}
