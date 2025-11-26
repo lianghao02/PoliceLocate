@@ -177,133 +177,57 @@ const app = (function () {
         else alert('無座標');
     }
 
-    // 截圖功能
-    function captureMap() {
-        const mapDiv = document.getElementById('map');
-        // 暫時隱藏控制項以獲得乾淨截圖 (可選)
-        return html2canvas(mapDiv, {
-            useCORS: true, // 允許跨域圖片 (OpenStreetMap)
-            // allowTaint: true, // 移除此行：這會導致 Canvas 被汙染而無法執行 toBlob
-            logging: false
-        }).then(canvas => {
-            return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-        });
-    }
-
-    async function copy() {
-        if (!data.lat) return alert('無座標');
-
-        const t = getShareText();
-
-        try {
-            // 嘗試截圖
-            const blob = await captureMap();
-
-            // 檢查是否支援 Clipboard Item (現代瀏覽器)
-            if (navigator.clipboard && navigator.clipboard.write) {
-                try {
-                    // 策略：優先複製圖片
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]);
-                    alert('✅ 地圖截圖已複製！\n請先貼上圖片，再複製文字。');
-
-                    if (confirm('圖片已複製。是否接著複製文字？\n(這將會覆蓋剪貼簿中的圖片，建議先去貼上圖片後再來點確定)')) {
-                        await navigator.clipboard.writeText(t);
-                        alert('✅ 文字已複製！');
-                    }
-                } catch (err) {
-                    console.error('Copy image failed:', err);
-                    await navigator.clipboard.writeText(t);
-                    alert('✅ 文字已複製 (圖片複製失敗，請手動截圖)');
-                }
-            } else {
-                // 舊版 fallback
-                const ta = document.createElement('textarea'); ta.value = t;
-                document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-                document.body.removeChild(ta); alert('✅ 文字已複製');
-            }
-        } catch (e) {
-            console.error('Screenshot failed:', e);
-            alert('截圖失敗，僅複製文字');
-            navigator.clipboard.writeText(t).then(() => alert('✅ 文字已複製'));
-        }
-    }
-
-    async function share(type) {
-        if (!data.lat) return alert('無座標');
-
-        const t = getShareText();
+    // 取得完整分享文字 (符合使用者要求格式)
+    function getFullText() {
         const mapUrl = `https://www.google.com/maps?q=${data.lat},${data.lng}`;
-
-        let blob = null;
-        try {
-            blob = await captureMap();
-        } catch (e) {
-            console.error('Map capture failed:', e);
-        }
-
-        // 手機版優先嘗試 Web Share API
-        if (navigator.share && navigator.canShare) {
-            try {
-                if (blob) {
-                    const file = new File([blob], "map_location.png", { type: "image/png" });
-                    // 檢查是否支援分享此檔案類型
-                    if (navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            title: '警用定位資訊',
-                            text: t,
-                            files: [file]
-                        });
-                        return; // 成功分享則結束
-                    }
-                }
-
-                // 若無法分享圖片 (或截圖失敗)，則降級分享純文字
-                await navigator.share({
-                    title: '警用定位資訊',
-                    text: t + '\n' + mapUrl
-                });
-                return;
-            } catch (e) {
-                console.log('Web Share API failed/cancelled', e);
-                // 若使用者取消分享 (AbortError)，則不繼續執行後續的電腦版邏輯
-                if (e.name === 'AbortError') return;
-            }
-        }
-
-        // 電腦版或不支援 Web Share 的情況 -> 分流處理
-
-        // 1. 嘗試複製圖片到剪貼簿
-        if (blob) {
-            try {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
-                alert('📸 地圖截圖已複製！\n請在 ' + (type === 'line' ? 'LINE' : 'Telegram') + ' 對話框貼上 (Ctrl+V)。\n\n貼上後，系統將自動開啟分享連結。');
-            } catch (e) {
-                console.error('Auto copy image failed:', e);
-                alert('自動截圖失敗(瀏覽器不支援)，將僅傳送文字連結。');
-            }
-        } else {
-            // 截圖失敗時不特別跳 alert，直接開連結，以免打斷流程
-            console.log('Skipping image copy due to capture failure');
-        }
-
-        // 2. 開啟對應 App 的分享連結 (僅文字)
-        const text = encodeURIComponent(t + '\n' + mapUrl);
-        if (type === 'line') window.open(`https://line.me/R/msg/text/?${text}`, '_blank');
-        else window.open(`https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(t)}`, '_blank');
-    }
-
-    function getShareText() {
-        let t = '';
+        let t = `${mapUrl}\n`;
         if (data.phone) t += `門號: ${data.phone}\n`;
         if (data.reqTime) t += `定位時間: ${data.reqTime}\n`;
         if (data.regTime) t += `註冊時間: ${data.regTime}\n`;
         t += `定位經緯度: ${data.lat}, ${data.lng}`;
         if (data.azi) t += ` (方位:${data.azi})`;
         return t;
+    }
+
+    function copy() {
+        if (!data.lat) return alert('無座標');
+        const t = getFullText();
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(t)
+                .then(() => alert('✅ 資訊已複製'))
+                .catch(err => {
+                    console.error(err);
+                    fallbackCopy(t);
+                });
+        } else {
+            fallbackCopy(t);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        alert('✅ 資訊已複製');
+    }
+
+    function share(type) {
+        if (!data.lat) return alert('無座標');
+        const t = getFullText();
+        const mapUrl = `https://www.google.com/maps?q=${data.lat},${data.lng}`; // 用於 Telegram 按鈕連結
+
+        // LINE: 傳送完整文字
+        if (type === 'line') {
+            window.open(`https://line.me/R/msg/text/?${encodeURIComponent(t)}`, '_blank');
+        }
+        // Telegram: url 參數放地圖連結，text 放完整資訊
+        else {
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(t)}`, '_blank');
+        }
     }
 
     // 新增：貼上功能 (改為 Promise 寫法以增加相容性)

@@ -23,113 +23,101 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="format-detection" content="telephone=no">
-        <title>警用定位助手</title>
 
-        <!-- 外部資源使用 CDN，確保載入速度 -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-        <link rel="stylesheet" href="style.css">
-    </head>
+        <div class="container">
+            <div class="main-content">
+                <div class="card">
+                    <div class="hint"><i class="fa-solid fa-wand-magic-sparkles"></i> 貼上整段文字，自動辨識座標與門號</div>
+                    <textarea id="rawInput" class="smart-area" placeholder="長按貼上... (支援 LINE/簡訊 格式)"></textarea>
 
-<body>
-    <h1>👮‍♂️ 警用定位助手</h1>
-    <small>PRO v50.0 | 正式發布版</small>
+                    <!-- 新增：貼上與清除按鈕 -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button class="btn" style="background: #16a085; flex: 1;" onclick="app.pasteInput()">
+                            <i class="fa-solid fa-paste"></i> 貼上
+                        </button>
+                        <button class="btn" style="background: #95a5a6; flex: 1;" onclick="app.clearInput()">
+                            <i class="fa-solid fa-eraser"></i> 清空
+                        </button>
+                    </div>
 
-    <div class="container">
-        <div class="main-content">
-            <div class="card">
-                <div class="hint"><i class="fa-solid fa-wand-magic-sparkles"></i> 貼上整段文字，自動辨識座標與門號</div>
-                <textarea id="rawInput" class="smart-area" placeholder="長按貼上... (支援 LINE/簡訊 格式)"></textarea>
-
-                <!-- 新增：貼上與清除按鈕 -->
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button class="btn" style="background: #16a085; flex: 1;" onclick="app.pasteInput()">
-                        <i class="fa-solid fa-paste"></i> 貼上
+                    <button class="btn btn-main" onclick="app.parse()">
+                        <i class="fa-solid fa-bolt"></i> 解析並定位
                     </button>
-                    <button class="btn" style="background: #95a5a6; flex: 1;" onclick="app.clearInput()">
-                        <i class="fa-solid fa-eraser"></i> 清空
-                    </button>
-                </div>
 
-                <button class="btn btn-main" onclick="app.parse()">
-                    <i class="fa-solid fa-bolt"></i> 解析並定位
-                </button>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label><i class="fa-solid fa-mobile-screen"></i> 門號</label>
+                            <input type="tel" id="phone" class="phone-input" placeholder="09xxxxxxxx" readonly
+                                onclick="this.removeAttribute('readonly')">
+                        </div>
+                    </div>
 
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label><i class="fa-solid fa-mobile-screen"></i> 門號</label>
-                        <input type="tel" id="phone" class="phone-input" placeholder="09xxxxxxxx" readonly
-                            onclick="this.removeAttribute('readonly')">
+                    <!-- 新增：定位請求時間 -->
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label><i class="fa-regular fa-clock"></i> 定位請求時間</label>
+                            <input type="text" id="reqTime" placeholder="yyyy/MM/dd HH:mm:ss">
+                        </div>
+                    </div>
+
+                    <!-- 新增：註冊基地台時間 -->
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label><i class="fa-solid fa-tower-cell"></i> 註冊基地台時間</label>
+                            <input type="text" id="regTime" placeholder="yyyy/MM/dd HH:mm:ss">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label>緯度 (Lat)</label>
+                            <input type="number" id="lat" step="any" placeholder="23.xxxxx">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>經度 (Lng)</label>
+                            <input type="number" id="lng" step="any" placeholder="120.xxxxx">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label>方位角 <span
+                                    style="font-weight:normal;color:#999;font-size:0.8rem">(0-360)</span></label>
+                            <input type="number" id="azi" placeholder="選填">
+                        </div>
+                    </div>
+
+                    <div class="action-grid">
+                        <button class="btn btn-map" onclick="app.openMap()"><i class="fa-solid fa-map-location-dot"></i>
+                            Google
+                            Map</button>
+                        <button class="btn btn-copy" onclick="app.copy()"><i class="fa-solid fa-copy"></i> 複製資訊</button>
+                        <button class="btn btn-tg" onclick="app.share('tg')"><i class="fa-brands fa-telegram"></i>
+                            Telegram</button>
+                        <button class="btn btn-line" onclick="app.share('line')"><i class="fa-brands fa-line"></i>
+                            LINE</button>
                     </div>
                 </div>
 
-                <!-- 新增：定位請求時間 -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label><i class="fa-regular fa-clock"></i> 定位請求時間</label>
-                        <input type="text" id="reqTime" placeholder="yyyy/MM/dd HH:mm:ss">
-                    </div>
-                </div>
-
-                <!-- 新增：註冊基地台時間 -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label><i class="fa-solid fa-tower-cell"></i> 註冊基地台時間</label>
-                        <input type="text" id="regTime" placeholder="yyyy/MM/dd HH:mm:ss">
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label>緯度 (Lat)</label>
-                        <input type="number" id="lat" step="any" placeholder="23.xxxxx">
-                    </div>
-                    <div class="input-wrapper">
-                        <label>經度 (Lng)</label>
-                        <input type="number" id="lng" step="any" placeholder="120.xxxxx">
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label>方位角 <span style="font-weight:normal;color:#999;font-size:0.8rem">(0-360)</span></label>
-                        <input type="number" id="azi" placeholder="選填">
-                    </div>
-                </div>
-
-                <div class="action-grid">
-                    <button class="btn btn-map" onclick="app.openMap()"><i class="fa-solid fa-map-location-dot"></i>
-                        Google
-                        Map</button>
-                    <button class="btn btn-copy" onclick="app.copy()"><i class="fa-solid fa-copy"></i> 複製資訊</button>
-                    <button class="btn btn-tg" onclick="app.share('tg')"><i class="fa-brands fa-telegram"></i>
-                        Telegram</button>
-                    <button class="btn btn-line" onclick="app.share('line')"><i class="fa-brands fa-line"></i>
-                        LINE</button>
-                </div>
+                <div id="map"></div>
             </div>
 
-            <div id="map"></div>
-        </div>
-
-        <div class="history-sec">
-            <div class="hist-head">
-                <div class="hist-title">最近查詢</div>
-                <button class="btn-clear" onclick="app.clearHistory()"><i class="fa-solid fa-trash-can"></i>
-                    清除</button>
+            <div class="history-sec">
+                <div class="hist-head">
+                    <div class="hist-title">最近查詢</div>
+                    <button class="btn-clear" onclick="app.clearHistory()"><i class="fa-solid fa-trash-can"></i>
+                        清除</button>
+                </div>
+                <ul id="list"></ul>
             </div>
-            <ul id="list"></ul>
+
+            <div class="footer">
+                System initialized. Version 50.0 Stable<br>
+                &copy; 2025 Police Locate Tool. All rights reserved.
+            </div>
         </div>
 
-        <div class="footer">
-            System initialized. Version 50.0 Stable<br>
-            &copy; 2025 Police Locate Tool. All rights reserved.
-        </div>
-    </div>
+        <script src="script.js"></script>
+        </body>
 
-    <script src="script.js"></script>
-</body>
-
-</html>
+    </html>
