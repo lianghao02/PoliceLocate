@@ -225,9 +225,10 @@ const app = (function () {
         if (type === 'line') {
             url = `https://line.me/R/msg/text/?${encodeURIComponent(t)}`;
         }
-        // Telegram: url 參數放地圖連結，text 放完整資訊
+        // Telegram: url 參數放地圖連結，text 放其餘資訊 (移除重複的 URL)
         else {
-            url = `https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(t)}`;
+            const textBody = t.replace(mapUrl + '\n', '');
+            url = `https://t.me/share/url?url=${encodeURIComponent(mapUrl)}&text=${encodeURIComponent(textBody)}`;
         }
 
         // 檢測是否為行動裝置
