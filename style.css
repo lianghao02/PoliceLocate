@@ -1,15 +1,16 @@
 /* 核心樣式：簡潔、專業、防誤觸 */
 :root {
-    --primary: #2c3e50;
-    --accent: #d35400;
-    --bg: #f4f6f7;
-    --line: #06c755;
-    --tg: #2481cc;
-    --copy: #8e44ad;
-    --del: #c0392b;
-    --white: #ffffff;
-    --gray: #e0e0e0;
-    --text: #333;
+    --color-primary: #2c3e50;
+    --color-accent: #d35400;
+    --color-bg: #f4f6f7;
+    --color-line: #06c755;
+    --color-tg: #2481cc;
+    --color-copy: #8e44ad;
+    --color-del: #c0392b;
+    --color-white: #ffffff;
+    --color-gray: #e0e0e0;
+    --color-text: #333;
+    --font-main: 'Inter', 'Noto Sans TC', sans-serif;
 }
 
 * {
@@ -18,10 +19,10 @@
 }
 
 body {
-    font-family: 'Noto Sans TC', sans-serif;
+    font-family: var(--font-main);
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--color-bg);
+    color: var(--color-text);
     padding-bottom: 80px;
     overflow-x: hidden;
     user-select: none;
@@ -36,8 +37,8 @@ body {
 }
 
 header {
-    background: linear-gradient(135deg, var(--primary), #34495e);
-    color: var(--white);
+    background: linear-gradient(135deg, var(--color-primary), #34495e);
+    color: var(--color-white);
     padding: 20px 15px;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -67,8 +68,8 @@ small {
 }
 
 .card {
-    background: var(--white);
-    border-radius: 16px;
+    background: var(--color-white);
+    border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -88,7 +89,7 @@ small {
 label {
     display: block;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--color-primary);
     margin-bottom: 6px;
     font-size: 0.9rem;
 }
@@ -96,8 +97,8 @@ label {
 input,
 textarea {
     width: 100%;
-    border: 2px solid var(--gray);
-    border-radius: 10px;
+    border: 2px solid var(--color-gray);
+    border-radius: 12px;
     padding: 12px;
     font-size: 1rem;
     font-family: monospace;
@@ -109,8 +110,8 @@ textarea {
 
 input:focus,
 textarea:focus {
-    border-color: var(--accent);
-    background: var(--white);
+    border-color: var(--color-accent);
+    background: var(--color-white);
     outline: none;
 }
 
@@ -129,9 +130,9 @@ textarea:focus {
 /* 按鈕系統 */
 .btn {
     width: 100%;
-    padding: 14px;
+    padding: 12px 20px;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
@@ -139,7 +140,7 @@ textarea:focus {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: var(--white);
+    color: var(--color-white);
     transition: transform 0.1s, opacity 0.2s;
 }
 
@@ -149,7 +150,7 @@ textarea:focus {
 }
 
 .btn-main {
-    background: var(--accent);
+    background: var(--color-accent);
     margin-bottom: 20px;
     box-shadow: 0 4px 10px rgba(211, 84, 0, 0.2);
 }
@@ -168,22 +169,22 @@ textarea:focus {
 }
 
 .btn-copy {
-    background: var(--copy);
+    background: var(--color-copy);
 }
 
 .btn-tg {
-    background: var(--tg);
+    background: var(--color-tg);
 }
 
 .btn-line {
-    background: var(--line);
+    background: var(--color-line);
 }
 
 /* 地圖 */
 #map {
     height: 350px;
     width: 100%;
-    border-radius: 16px;
+    border-radius: 12px;
     margin-top: 20px;
     display: none;
     z-index: 1;
@@ -200,13 +201,13 @@ textarea:focus {
     align-items: center;
     margin-bottom: 15px;
     padding-left: 10px;
-    border-left: 4px solid var(--accent);
+    border-left: 4px solid var(--color-accent);
 }
 
 .hist-title {
     font-weight: 700;
     font-size: 1.1rem;
-    color: var(--primary);
+    color: var(--color-primary);
 }
 
 .btn-clear {
@@ -225,7 +226,7 @@ ul {
 }
 
 li {
-    background: var(--white);
+    background: var(--color-white);
     border-radius: 12px;
     padding: 15px;
     margin-bottom: 10px;
@@ -239,14 +240,14 @@ li {
 
 li:active {
     background: #f8f9fa;
-    border-color: var(--accent);
+    border-color: var(--color-accent);
 }
 
 .del-icon {
     position: absolute;
     top: 15px;
     right: 15px;
-    color: var(--del);
+    color: var(--color-del);
     padding: 5px;
 }
 
@@ -263,7 +264,7 @@ li:active {
     border-radius: 4px;
     background: #e3f2fd;
     color: #2980b9;
-    }
+}
 
 /* 版權浮水印 */
 .footer {
@@ -290,9 +291,9 @@ li:active {
 
     .history-sec {
         margin-top: 0;
-        background: var(--white);
+        background: var(--color-white);
         padding: 20px;
-        border-radius: 16px;
+        border-radius: 12px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         position: sticky;
         top: 90px;
